@@ -30,6 +30,7 @@ namespace TechParamsCalc
         public ParametersUC parametersUC;
         public ServerSynchronizationUC serverSynchronizationUC;
         public LogUC logUC;
+
         private CalcController controller;
         private bool StateClosed = true;
         private bool mainWindowCanClosed = false;
@@ -48,7 +49,7 @@ namespace TechParamsCalc
             TrayMenu = Resources["TrayMenu"] as System.Windows.Controls.ContextMenu;
             ni = new NotifyIcon();
             string path = AppDomain.CurrentDomain.BaseDirectory;
-            ni.Icon = new System.Drawing.Icon(@"Source\Main.ico");
+            ni.Icon = new System.Drawing.Icon(@"Source\icons8_test_tube_white.ico");
             ni.Visible = true;
             ni.DoubleClick +=
                 delegate (object sender, EventArgs args)
@@ -74,14 +75,12 @@ namespace TechParamsCalc
 
             };
 
-
             //Creating User Interfaces
             opcSettingsUC = new OPCServerSettingsUC { isEnableWritingChecked = true };
             dataAccessSettingsUC = new DataAccessSettingsUC();
             parametersUC = new ParametersUC();
             serverSynchronizationUC = new ServerSynchronizationUC();
             logUC = new LogUC();
-
 
             //При запуске приложения проверяется роль хоста (чтение IP из БД). Если при старте компьютера
             //приложение стучится к БД раньше, чем запустится SQL сервер, будет произведена попытка прочитать роль еще раз
@@ -92,7 +91,13 @@ namespace TechParamsCalc
                 for (int i = 0; i < 5; i++)
                 {
                     controllerRole = DefineHostRole();
-                    Dispatcher.Invoke(() => serverSynchronizationUC.ServerSyncRoleTextBox.Text = controllerRole.ToString());
+                    //Dispatcher.Invoke(() => serverSynchronizationUC.ServerSyncRoleTextBox.Text = controllerRole.ToString());
+                    Dispatcher.Invoke(() =>
+                    {
+                        opcSettingsUC.ServerSyncRoleTextBox.Foreground = Brushes.Black;
+                        return opcSettingsUC.ServerSyncRoleTextBox.Content = controllerRole.ToString();
+                    });
+
                     if (controllerRole != HostRole.ERROR)
                         break;
                     WriteToLog("Attempt to define Server role. Reading from DataBase failed!");
@@ -128,7 +133,8 @@ namespace TechParamsCalc
         #region MainWidnow Handlers
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            ContentGrid.Children.Add(parametersUC);
+            //ContentGrid.Children.Add(parametersUC);
+            ContentGrid.Children.Add(logUC);
         }
 
         private void Window_Closed(object sender, EventArgs e)
@@ -160,6 +166,13 @@ namespace TechParamsCalc
         {
             this.Show();
             this.WindowState = WindowState.Normal;
+        }
+
+        private async void MenuStartCalculation(object sender, RoutedEventArgs e)
+        {
+            //cancelTokenSource.Run();
+            
+            await StartOperation();
         }
 
         private async void MenuStopCalculation(object sender, RoutedEventArgs e)
@@ -217,6 +230,10 @@ namespace TechParamsCalc
             //Подписываемся на события контроллера
             #region Events Subscribe
 
+            //Подписываемся на события прогресса инициализации программы
+            controller.progressBarEvent += (o, ea) => { Dispatcher.Invoke(() => ChangeValueProgressBar(((CustomEventArgs)ea).ErrorMessage)); };
+            controller.progressBarEvent += (o, ea) => { Dispatcher.Invoke(() => ItemDoneInit(((CustomEventArgs)ea).ErrorMessage)); };
+
             //Подписываемся на событие возникновения ршибки при записи значений в OPC
             controller.errorRaisedEvent += (o, ea) => { Dispatcher.Invoke(() => WriteToLog(((CustomEventArgs)ea).ErrorMessage)); };
 
@@ -265,10 +282,15 @@ namespace TechParamsCalc
 
             }).ContinueWith((o) => Dispatcher.Invoke(() =>
             {
-                parametersUC.CapacityGrid.ItemsSource = (controller.capacityCreator as CapacityCreator).CapacityList;
-                parametersUC.DensityGrid.ItemsSource = (controller.densityCreator as DensityCreator).DensityList;
-                parametersUC.ContentGrid.ItemsSource = (controller.contentCreator as ContentCreator).ContentList;
-                parametersUC.TankGrid.ItemsSource = (controller.levelTankCreator as LevelTankCreator).LevelTankList;
+                //parametersUC.CapacityGrid.ItemsSource = (controller.capacityCreator as CapacityCreator).CapacityList;
+                //parametersUC.DensityGrid.ItemsSource = (controller.densityCreator as DensityCreator).DensityList;
+                //parametersUC.ContentGrid.ItemsSource = (controller.contentCreator as ContentCreator).ContentList;
+                //parametersUC.TankGrid.ItemsSource = (controller.levelTankCreator as LevelTankCreator).LevelTankList;
+
+                parametersUC.CapacityGrid.ItemsSource = (controller.capacityCreator as CapacityCreatorCitect).CapacityList.OrderBy(i => i.TagName);
+                parametersUC.DensityGrid.ItemsSource = (controller.densityCreator as DensityCreatorCitect).DensityList.OrderBy(i => i.TagName);
+                parametersUC.ContentGrid.ItemsSource = (controller.contentCreator as ContentCreatorCitect).ContentList.OrderBy(i => i.TagName);
+                parametersUC.TankGrid.ItemsSource = (controller.levelTankCreator as LevelTankCreatorCitect).LevelTankList.OrderBy(i => i.TagName);
 
             })
                           );
@@ -341,7 +363,7 @@ namespace TechParamsCalc
                 parametersUC.CapacityGrid.Items.Refresh();
                 parametersUC.DensityGrid.Items.Refresh();
                 parametersUC.ContentGrid.Items.Refresh();
-
+                parametersUC.TankGrid.Items.Refresh();
             });
 
 
@@ -351,32 +373,35 @@ namespace TechParamsCalc
                 //Если произошла ошибка записи/чтения
                 if (!args.IsSucceed && isSucceedPreviuos)
                     //Подменяем иконку в трее на Failed 
-                    ni.Icon = new System.Drawing.Icon(@"Source\MainFailed.ico");
+                    ni.Icon = new System.Drawing.Icon(@"Source\icons8_test_tube_failed.ico");
 
 
                 //Если ушла ошибка записи/чтения
                 if (args.IsSucceed && !isSucceedPreviuos)
                     //Подменяем иконку в трее на нормальную - без ошибок                    
-                    ni.Icon = new System.Drawing.Icon(@"Source\Main.ico");
+                    ni.Icon = new System.Drawing.Icon(@"Source\icons8_test_tube_white.ico");
 
 
                 if (args.IsSucceed)
                     isSucceedPreviuos = true;
 
                 if (args.IsSucceed && controller.IsInstanceActive)
-                    CalculatedEventRectangle.Fill = Brushes.Green;
+                    Version.Foreground = Brushes.Green;
 
                 if (args.IsSucceed && !controller.IsInstanceActive)
-                    CalculatedEventRectangle.Fill = Brushes.Yellow;
+                    Version.Foreground = Brushes.Yellow;
 
 
-                ServerSyncRect1.Fill = (controller.singleTagCreator as SingleTagCreator).SingleTagFromPLC[3] == 1 ? Brushes.Green : Brushes.Red;
-                ServerSyncRect2.Fill = (controller.singleTagCreator as SingleTagCreator).SingleTagFromPLC[4] == 1 ? Brushes.Green : Brushes.Red;
+                ServerSyncRect1.Content    = (controller.singleTagCreator as SingleTagCreator).SingleTagFromPLC[3] == 1 ? "online" : "offline";
+                ServerSyncRect1.Background = (controller.singleTagCreator as SingleTagCreator).SingleTagFromPLC[3] == 1 ? Brushes.Green : (SolidColorBrush)new BrushConverter().ConvertFrom("#FF808080");
+
+                ServerSyncRect2.Content    = (controller.singleTagCreator as SingleTagCreator).SingleTagFromPLC[4] == 1 ? "online" : "offline";
+                ServerSyncRect2.Background = (controller.singleTagCreator as SingleTagCreator).SingleTagFromPLC[4] == 1 ? Brushes.Green : (SolidColorBrush)new BrushConverter().ConvertFrom("#FF808080");
 
 
-                if (!args.IsSucceed)
+            if (!args.IsSucceed)
                 {
-                    CalculatedEventRectangle.Fill = Brushes.Red;
+                    Version.Foreground = Brushes.Red;
                     WriteToLog("Writing Error!!!!\t" + args.ErrorMessage);
                     isSucceedPreviuos = false;
                 }
@@ -387,20 +412,23 @@ namespace TechParamsCalc
             this.Dispatcher.Invoke(() => parametersUC.AtmoPressureLabel.Content = (controller.singleTagCreator as SingleTagCreator).AtmoPressureFromOPC * 0.0001);
 
             Thread.Sleep(800);
-            this.Dispatcher.Invoke(() => CalculatedEventRectangle.Fill = Brushes.LightGray);
+            this.Dispatcher.Invoke(() => Version.Foreground = (SolidColorBrush)new BrushConverter().ConvertFrom("#FF808080")); //Brushes.LightGray);
 
             //Индикация активности текущего инстанса программы на предмет записи в OPC
             this.Dispatcher.Invoke(() =>
             {
-                serverSynchronizationUC.ServerSyncWritingRectangle.Fill = controller.IsInstanceActive ? Brushes.Green : Brushes.Gray;
-                opcSettingsUC.ServerStateRectangle.Fill = controller.opcServer.IsConnected ? Brushes.Green : Brushes.Yellow;
+                //serverSynchronizationUC.ServerSyncWritingRectangle.Fill = controller.IsInstanceActive ? Brushes.Green : Brushes.Gray;
+                opcSettingsUC.ServerSyncWritingRectangle.Background = controller.IsInstanceActive ? Brushes.Green : Brushes.Red;
+                opcSettingsUC.ServerSyncWritingRectangle.Content = controller.IsInstanceActive ? "Writable" : "Read only";
+
+                //opcSettingsUC.ServerStateRectangle.Fill = controller.opcServer.IsConnected ? Brushes.Green : Brushes.Yellow;
+                opcSettingsUC.ServerStateRectangle.Background = controller.opcServer.IsConnected ? Brushes.Green : Brushes.Red;
+                opcSettingsUC.ServerStateRectangle.Content = controller.opcServer.IsConnected ? "Connected" : "Not connected";
             });
 
             //Обновляем параметр isEnableWriting класса-контейнера ControllerParameters для определения может ли писать инстанс программы в OPC
             controllerParameters.isEnableWriting = opcSettingsUC.isEnableWritingChecked;
         }
-
-
 
         //Определяем свой ip и свою роль в процессе чтения-записи в (из) OPC
         private HostRole DefineHostRole()
@@ -449,7 +477,7 @@ namespace TechParamsCalc
         private void WriteToLog(string logText)
         {
             //Запись в TextBlock UI
-            this.Dispatcher.Invoke(() => logUC.LogTextBlock.Text = logUC.LogTextBlock.Text + DateTime.Now.ToString() + "\t" + logText + Environment.NewLine);
+            this.Dispatcher.Invoke(() => logUC.LogTextBlock.Text = logUC.LogTextBlock.Text + DateTime.Now.ToLongTimeString() + @"	    " + logText + Environment.NewLine);
 
             //Запись в файл
             try
@@ -462,6 +490,65 @@ namespace TechParamsCalc
             }
         }
 
+        // Изменение значения прогресс бара
+        private void ChangeValueProgressBar(string progressBarValue)
+        {
+            //Запись в UI
+            this.Dispatcher.Invoke(() => ProgressBarInit.Value = Convert.ToDouble(progressBarValue));
+            if (Convert.ToDouble(progressBarValue) == 100)
+            {
+                ProgressBarInit.Visibility = Visibility.Hidden;
+                TextProgressBarInit.Visibility = Visibility.Hidden;
+            }
+        }
+
+        private void ItemDoneInit(string progressBarValue)
+        {
+            switch (progressBarValue)
+            {
+                case "1":
+                    this.Dispatcher.Invoke(() => logUC.DBTextResult.Content = "done");
+                    break;
+                case "2":
+                    this.Dispatcher.Invoke(() => logUC.SingleTextCount.Content = controller.countSingleTags);
+                    this.Dispatcher.Invoke(() => logUC.SingleTextResult.Content = "done");
+                    break;
+                case "14":
+                    this.Dispatcher.Invoke(() => logUC.TemperatureTextCount.Content = controller.countTemperatures);
+                    this.Dispatcher.Invoke(() => logUC.TemperatureTextResult.Content = "done");
+                    break;
+                case "24":
+                    this.Dispatcher.Invoke(() => logUC.PressureTextCount.Content = controller.countPressures);
+                    this.Dispatcher.Invoke(() => logUC.PressureTextResult.Content = "done");
+                    break;
+                case "34":
+                    this.Dispatcher.Invoke(() => logUC.LevelsTextCount.Content = controller.countLevels);
+                    this.Dispatcher.Invoke(() => logUC.LevelsTextResult.Content = "done");
+                    break;
+                case "44":
+                    this.Dispatcher.Invoke(() => logUC.CapacitiesTextCount.Content = controller.countCapacities);
+                    this.Dispatcher.Invoke(() => logUC.CapacitiesTextResult.Content = "done");
+                    break;
+                case "54":
+                    this.Dispatcher.Invoke(() => logUC.DensitiesTextCount.Content = controller.countDensities);
+                    this.Dispatcher.Invoke(() => logUC.DensitiesTextResult.Content = "done");
+                    break;
+                case "64":
+                    this.Dispatcher.Invoke(() => logUC.ContentsTextCount.Content = controller.countContents);
+                    this.Dispatcher.Invoke(() => logUC.ContentsTextResult.Content = "done");
+                    break;
+                case "74":
+                    this.Dispatcher.Invoke(() => logUC.TankTextCount.Content = controller.countTanks);
+                    this.Dispatcher.Invoke(() => logUC.TankTextResult.Content = "done");
+                    break;
+                case "100":
+                    this.Dispatcher.Invoke(() => logUC.ServerTextResult.Content = "done");
+                    break;
+                default:
+                    break;
+            }
+
+        }
 
         //Обработчик событий кнопок Hamburger Menu
         private void HamburgerMenuButton_Click(object sender, RoutedEventArgs e)

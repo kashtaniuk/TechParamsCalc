@@ -5,30 +5,99 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:TechParamsCalc.UserControls"
              mc:Ignorable="d" 
-             d:DesignHeight="500" d:DesignWidth="500">
+             d:DesignHeight="500" d:DesignWidth="800">
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="0.09*"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="0.1*"/>
+            <ColumnDefinition Width="0.5*"/>
         </Grid.ColumnDefinitions>
 
-        <Border BorderThickness="2" BorderBrush="BurlyWood" Margin="0,10,0,0">
+        <!--Parametres-->
+        <Label x:Name="ParametrsDescription" Content="Parameters"                 Grid.Row="0" Grid.Column="0" Foreground="Gray" HorizontalAlignment="Center" VerticalAlignment="Center" Width="auto" FontSize="14" FontWeight="Bold"/>
+
+        <StackPanel                                                                      Grid.Column="0" Grid.Row="1" Height="auto" Width="auto" Grid.RowSpan="1" Margin="5,5,5,5" Background="#FF666666"  >
+            <Grid Grid.Column="1" Grid.Row="3"  Margin="10 10 10 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="0.3*"/>
+                    <ColumnDefinition Width="0.3*"/>
+                    <ColumnDefinition Width="0.3*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label   x:Name="DBText"                 Content="1.  Connect to DB:"      Grid.Column="0" Grid.Row="0" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="DBTextResult"           Content="..."                     Grid.Column="3" Grid.Row="0" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+
+                <Label   x:Name="SingleText"             Content="2.  Read single tag:"    Grid.Column="0" Grid.Row="1" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="SingleTextCount"        Content="..."                     Grid.Column="2" Grid.Row="1" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="SingleTextResult"       Content="..."                     Grid.Column="3" Grid.Row="1" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+
+                <Label   x:Name="TemperatureText"        Content="3.  Temperature:"        Grid.Column="0" Grid.Row="2" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="TemperatureTextCount"   Content="..."                     Grid.Column="2" Grid.Row="2" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="TemperatureTextResult"  Content="..."                     Grid.Column="3" Grid.Row="2" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                
+                <Label   x:Name="PressureText"           Content="4.  Pressure:"           Grid.Column="0" Grid.Row="3" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="PressureTextCount"      Content="..."                     Grid.Column="2" Grid.Row="3" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="PressureTextResult"     Content="..."                     Grid.Column="3" Grid.Row="3" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                
+                <Label   x:Name="LevelsText"             Content="5.  Levels:"             Grid.Column="0" Grid.Row="4" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="LevelsTextCount"        Content="..."                     Grid.Column="2" Grid.Row="4" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="LevelsTextResult"       Content="..."                     Grid.Column="3" Grid.Row="4" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                
+                <Label   x:Name="CapacitiesText"         Content="6.  Capacities:"         Grid.Column="0" Grid.Row="5" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="CapacitiesTextCount"    Content="..."                     Grid.Column="2" Grid.Row="5" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="CapacitiesTextResult"   Content="..."                     Grid.Column="3" Grid.Row="5" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                
+                <Label   x:Name="DensitiesText"          Content="7.  Densities:"          Grid.Column="0" Grid.Row="6" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="DensitiesTextCount"     Content="..."                     Grid.Column="2" Grid.Row="6" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="DensitiesTextResult"    Content="..."                     Grid.Column="3" Grid.Row="6" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                
+                <Label   x:Name="ContentsText"           Content="8.  Contents:"           Grid.Column="0" Grid.Row="7" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="ContentsTextCount"      Content="..."                     Grid.Column="2" Grid.Row="7" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="ContentsTextResult"     Content="..."                     Grid.Column="3" Grid.Row="7" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                
+                <Label   x:Name="TankText"               Content="9.  Tanks:"              Grid.Column="0" Grid.Row="8" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="TankTextCount"          Content="..."                     Grid.Column="2" Grid.Row="8" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="TankTextResult"         Content="..."                     Grid.Column="3" Grid.Row="8" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+                
+                <Label   x:Name="ServerText"             Content="10. Start calculation:"  Grid.Column="0" Grid.Row="9" Margin="0,0,0,0"  Foreground="#FFDDDDDD" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="ServerTextResult"       Content="..."                     Grid.Column="3" Grid.Row="9" Margin="0 0 0 0"  Foreground="Black"     HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="12"/>
+
+
+            </Grid>
+        </StackPanel>
+
+        <!--Logging-->
+        <Label x:Name="LoggingDescription" Content="Logging"                 Grid.Row="0" Grid.Column="1" Foreground="Gray" HorizontalAlignment="Center" VerticalAlignment="Center" Width="auto" FontSize="14" FontWeight="Bold"/>
+        
+        <Border BorderThickness="0" BorderBrush="BurlyWood" Grid.Row="1" Grid.Column="1" Width="auto" Height="auto" Margin="5,5,5,5">
             <ScrollViewer>
-                <TextBlock x:Name="LogTextBlock" Grid.Row="0" Grid.Column="0" Background="White" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+                <TextBlock x:Name="LogTextBlock" Background="#FF666666" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" Foreground="Black" Padding="5,0,0,0"/>
             </ScrollViewer>
         </Border>
 
-        <StackPanel Grid.Row="0" Grid.Column="1" Width="auto" Height="auto">
+        <!--<StackPanel Grid.Row="0" Grid.Column="1" Width="auto" Height="auto">
             <Button x:Name="ClearButton" Width="25" Height="25"  Foreground="#DD0E0101" BorderBrush="#FFE0D6D6" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,5,5" Click="ClearButton_Click">
                 <Button.Background>
                     <ImageBrush ImageSource="/TechParamsCalc;component/Source/Clear.png"/>
                 </Button.Background>
             </Button>
-        </StackPanel>
-
+        </StackPanel>-->
 
     </Grid>
 </UserControl>

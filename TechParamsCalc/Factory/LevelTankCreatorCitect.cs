@@ -8,10 +8,11 @@ using TechParamsCalc.DataBaseConnection.Level;
 using TechParamsCalc.OPC;
 using TechParamsCalc.Parameters;
 using TitaniumAS.Opc.Client.Da;
+using TitaniumAS.Opc.Client.Da.Browsing;
 
 namespace TechParamsCalc.Factory
 {
-    internal class LevelTankCreator : ItemsCreator
+    internal class LevelTankCreatorCitect : ItemsCreator
     {
         private string[] itemDescLevelTankForWrite = new string[] { "H_MAX", "H_HMI", "V_HMI", "M_HMI" };
         private string[] itemDescLevelTankForRead = new string[0];
@@ -20,12 +21,12 @@ namespace TechParamsCalc.Factory
         private SingleTagCreator singleTagCreator;
         //private OpcDaItemValue[] levelTankValues;
 
-        public LevelTankCreator(IOpcClient opcClient, ItemsCreator itemCreator) : base(opcClient)
+        public LevelTankCreatorCitect(IOpcClient opcClient, ItemsCreator itemCreator) : base(opcClient)
         {
-            //@"^.*_TANK.*$"
-            
-            subStringTagName = @"^[S]\d{2,3}[_]\w*[_]TANK$";
+            subStringTagName = @"^[S]\d{2,3}[_]\d{2,3}[_]\w*[_]TANK_H_HMI$";
+
             LevelTankList = new List<LevelTank>();
+
             singleTagCreator = itemCreator as SingleTagCreator;
         }
 
@@ -35,6 +36,30 @@ namespace TechParamsCalc.Factory
         {
             //Считываем из OPC-Reader строки с названиями переменных
             nodeElementCollection = opcClient.ReadDataToNodeList(subStringTagName).ToList();
+
+            // удаляем _H_HMI
+            foreach (var item in nodeElementCollection)
+            {
+                item.Name = item.Name.Replace("_H_HMI", "");
+                item.ItemId = item.Name.Replace("_H_HMI", "");
+            }
+        }
+
+        // перегруженый метод создания списка levelTank
+        protected internal override void CreateItemList(HashSet<string> levelTankDB, List<OpcDaBrowseElement> opcDaBrowseElements)
+        {
+            //Считываем из OPC-Reader строки с названиями переменных
+            foreach (var levelTank in levelTankDB)
+            {
+                var temp = opcDaBrowseElements.FirstOrDefault(t => t.ItemId == levelTank + "_TANK_H_HMI");
+                if (temp != null)
+                {
+                    temp.Name = temp.Name.Replace("_H_HMI", "");
+                    temp.ItemId = temp.Name.Replace("_H_HMI", "");
+                    nodeElementCollection.Add(temp);
+                }
+            }
+            countItems = nodeElementCollection.Count;
         }
 
 
@@ -51,20 +76,30 @@ namespace TechParamsCalc.Factory
             //Создаем список анонимных объектов 
             var collection = (from tc in dbContext.tankContents
                               join t in dbContext.tanks on tc.tankId equals t.id
-                              select new { Id = tc.id, TagName = tc.tankVarDef, Tank = t, tc.distanceA , tc.distanceB, tc.probeLength, tc.distToDistanceA }).ToList();
+                              select new { Id = tc.id, TagName = tc.tankVarDef, Tank = t, tc.distanceA, tc.distanceB, tc.probeLength, tc.distToDistanceA }).ToList();
 
             //Создаем список LevelTank, параллельно инициализируем его переменными Level
             LevelTankList = new List<LevelTank>();
             collection.ForEach(x =>
             {
-                 var level = levelList.FirstOrDefault(l => l.TagName == x.TagName.Substring(0, Math.Max(x.TagName.IndexOf("_TANK"), 0)));
+                var level = levelList.FirstOrDefault(l => l.TagName == x.TagName.Substring(0, Math.Max(x.TagName.IndexOf("_TANK"), 0)));
                 var density = level != null ? densityList.FirstOrDefault(d => d.TagName == level.TagName + "_DENS") : null;
 
                 if (level != null && density != null && nodeElementCollection.Any(ne => ne.Name == x.TagName))
                 {
-                    LevelTankList.Add(new LevelTank { Id = x.Id, TagName = x.TagName, Tank = x.Tank, Level = level, Density = density, 
-                                                        DistanceA = x.distanceA, DistanceB = x.distanceB, ProbeLength = x.probeLength, 
-                                                        DistToDistanceA = x.distToDistanceA, IsWriteble = true });
+                    LevelTankList.Add(new LevelTank
+                    {
+                        Id = x.Id,
+                        TagName = x.TagName,
+                        Tank = x.Tank,
+                        Level = level,
+                        Density = density,
+                        DistanceA = x.distanceA,
+                        DistanceB = x.distanceB,
+                        ProbeLength = x.probeLength,
+                        DistToDistanceA = x.distToDistanceA,
+                        IsWriteble = true
+                    });
                 }
 
             });

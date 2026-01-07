@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TechParamsCalc.OPC;
 using TitaniumAS.Opc.Client.Da;
+using TitaniumAS.Opc.Client.Da.Browsing;
 using TechParamsCalc.Parameters;
 
 namespace TechParamsCalc.Factory
@@ -19,12 +20,21 @@ namespace TechParamsCalc.Factory
         private int countOfErrorsInReading;
 
         public List<Level> LevelList { get; private set; }
-        public LevelCreator(OpcClient opcClient) : base(opcClient)
+        public LevelCreator(IOpcClient opcClient) : base(opcClient)
         {
             //@"^.*_L[CT].*$"
             //@"^.*_L[CT]\d{2,3}$"
-            
-            subStringTagName = @"^[S]\d{2,3}[_]\w*_L[CT]\d{2,3}$";
+            switch (opcClient)
+            {
+                case OpcClient _:
+                    subStringTagName = @"^[S]\d{2,3}[_]\w*_L[CT]\d{2,3}$";
+                    break;
+                case OpcClientCitect _:
+                    subStringTagName = @"^[S]\d{2,3}[_]\d{2,3}[_]\w*_L[CT]\d{2,3}[_]R$";
+                    break;
+                default:
+                    break;
+            }
             LevelList = new List<Level>();
         }
 
@@ -33,6 +43,33 @@ namespace TechParamsCalc.Factory
             //Считываем из OPC-Reader строки с названиями переменных
 
             nodeElementCollection = opcClient.ReadDataToNodeList(subStringTagName).ToList();
+            
+            if (opcClient is OpcClientCitect)
+            {
+                // удаляем _R
+                foreach (var item in nodeElementCollection)
+                {
+                    item.Name = item.Name.Replace("_R", "");
+                    item.ItemId = item.Name.Replace("_R", "");
+                }
+            }
+        }
+
+        // перегруженый метод создания списка уровней
+        protected internal override void CreateItemList(HashSet<string> levelDB, List<OpcDaBrowseElement> opcDaBrowseElements)
+        {
+            //Считываем из OPC-Reader строки с названиями переменных
+            foreach (var level in levelDB)
+            {
+                var temp = opcDaBrowseElements.FirstOrDefault(t => t.ItemId == level + "_R" || t.ItemId == level);
+                if (temp != null)
+                {
+                    temp.Name = temp.Name.Replace("_R", "");
+                    temp.ItemId = temp.Name.Replace("_R", "");
+                    nodeElementCollection.Add(temp);
+                }
+            }
+            countItems = nodeElementCollection.Count;
         }
 
         protected internal override void CreateOPCReadGroup()
@@ -67,7 +104,10 @@ namespace TechParamsCalc.Factory
                         _level.Val_R = (float)levelValues[0 + _valueCollectionIterator].Value;
                     }
                     else
+                    {
+                        _level.IsInValid = true;
                         countOfErrorsInReading++;
+                    }
                 }
                 catch (Exception)
                 {
@@ -79,9 +119,8 @@ namespace TechParamsCalc.Factory
                 }
 
             }
-
-            if (countOfErrorsInReading > 0)
-                throw new Exception($"Количество ошибок чтения уровней - {countOfErrorsInReading}");
+            //if (countOfErrorsInReading > 0)
+            //    throw new Exception($"Количество ошибок чтения уровней - {countOfErrorsInReading}");
         }
     }
 }

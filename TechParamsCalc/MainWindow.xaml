@@ -8,8 +8,8 @@
         
         
         mc:Ignorable="d"
-        Title="TechParamsCalc" Height="600" Width="800" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" Closed="Window_Closed" Loaded="Window_Loaded"
-        Icon="/TechParamsCalc;component/Source/Main.png" Closing="Window_Closing">
+        Title="TechParamsCalc" Height="600" Width="1000" ResizeMode="NoResize" WindowStartupLocation="CenterScreen" WindowStyle="SingleBorderWindow" Closed="Window_Closed" Loaded="Window_Loaded"
+        Icon="/icons8_test_tube_16.png" Closing="Window_Closing" Background="#FF2E2E2E" SizeToContent="Manual">
 
 
     <Window.Resources>
@@ -40,10 +40,6 @@
             <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(FrameworkElement.Width)" Storyboard.TargetName="GridMenu">
                 <EasingDoubleKeyFrame KeyTime="0" Value="70"/>
                 <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="300"/>
-            </DoubleAnimationUsingKeyFrames>
-            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(FrameworkElement.Width)" Storyboard.TargetName="ContentGrid">
-                <EasingDoubleKeyFrame KeyTime="0" Value="700"/>
-                <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="470"/>
             </DoubleAnimationUsingKeyFrames>
 
             <!--Анимация для кнопок HamburgerMenu-->
@@ -85,11 +81,6 @@
                 <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="70"/>
             </DoubleAnimationUsingKeyFrames>
 
-            <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(FrameworkElement.Width)" Storyboard.TargetName="ContentGrid">
-                <EasingDoubleKeyFrame KeyTime="0" Value="470"/>
-                <EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="700"/>
-            </DoubleAnimationUsingKeyFrames>
-
 
             <!--Анимация для кнопок HamburgerMenu-->
             <DoubleAnimationUsingKeyFrames Storyboard.Target="{StaticResource AnimationPlaceholder}" Storyboard.TargetProperty="(local:TestPlaceHolder.ButtonWidth)" >
@@ -110,22 +101,25 @@
 
         <!--Стиль для кнопок HamburgerMenu-->
         <Style TargetType="Button" x:Key="ButtonStyle" BasedOn="{StaticResource MaterialDesignFlatDarkBgButton}">
+            <!--BasedOn="{StaticResource MaterialDesignFlatDarkBgButton}"-->
             <Style.Setters>
-                <Setter Property="Width" Value="{Binding Source={StaticResource AnimationPlaceholder}, Path=ButtonWidth}"/>
-                <Setter Property="Height" Value="35"/>
-                <Setter Property="Margin" Value="5 5 0 0"/>
+                <!--<Setter Property="Width" Value="{Binding Source={StaticResource AnimationPlaceholder}, Path=ButtonWidth}"/>-->
+                <Setter Property="Width" Value="auto"/>
+                <Setter Property="Height" Value="50"/>
+                <Setter Property="Margin" Value="5 5 5 0"/>
                 <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="HorizontalAlignment" Value="Left"/>
-                <Setter Property="Background" Value="#FFF4F2F7"/>
-                <Setter Property="BorderBrush" Value="#FF030008"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
+                <Setter Property="Background" Value="#FF666666"/>
+                <Setter Property="BorderBrush" Value="#FF666666"/>
+                <!--#FF030008-->
                 <EventSetter Event="Click" Handler="HamburgerMenuButton_Click" />
             </Style.Setters>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver"  Value="True">
-                    <Setter Property="BorderBrush" Value="White" />
+                    <Setter Property="BorderBrush" Value="#FF278E98" />
                 </Trigger>
                 <Trigger Property="IsMouseOver"  Value="False">
-                    <Setter Property="BorderBrush" Value="Black" />
+                    <Setter Property="BorderBrush" Value="#FF666666" />
                 </Trigger>
             </Style.Triggers>
 
@@ -134,11 +128,12 @@
         <!--Стиль для гридов кнопок HamburgerMenu-->
         <Style TargetType="Grid" x:Key="GridStyle" >
             <Style.Setters>
-                <Setter Property="Width" Value="{Binding Source={StaticResource AnimationPlaceholder}, Path=GridWidth}"/>
+                <!--<Setter Property="Width" Value="{Binding Source={StaticResource AnimationPlaceholder}, Path=GridWidth}"/>-->
+                <Setter Property="Width" Value="auto"/>
                 <Setter Property="Height" Value="auto"/>
-                <Setter Property="Margin" Value="-2 -2 -2 -2"/>
+                <!--<Setter Property="Margin" Value="-2 -2 -2 -2"/>-->
                 <Setter Property="VerticalAlignment" Value="Center"/>
-                <Setter Property="HorizontalAlignment" Value="Left"/>
+                <Setter Property="HorizontalAlignment" Value="Center"/>
             </Style.Setters>
         </Style>
 
@@ -176,7 +171,8 @@
         <ContextMenu x:Key="TrayMenu" Style="{StaticResource MaterialDesignMenu}">
             <MenuItem Header="Show" Click="MenuShowClick" />
             <Separator />
-            <MenuItem Header="Stop Calculation" Click="MenuStopCalculation"/>
+            <MenuItem Header="Start Calculation" Click="MenuStartCalculation" IsEnabled="False"/>
+            <MenuItem Header="Stop Calculation" Click="MenuStopCalculation" IsEnabled="True"/>
             <Separator />
             <MenuItem Header="Exit" Click="MenuExitClick" />
         </ContextMenu>
@@ -185,24 +181,31 @@
 
 
 
-    <Grid x:Name="BaseGrid" Background="#FFF5EDED" >
+    <Grid x:Name="BaseGrid" Background="#FF383838" >
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="auto"/>
-            <ColumnDefinition Width="auto" />
+            <ColumnDefinition Width="0.1*"/>
+            <ColumnDefinition Width="*" />
+            <!--<ColumnDefinition Width="127"/>-->
+            <!--<ColumnDefinition Width="64"/>-->
         </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="0.1*"/>
+        </Grid.RowDefinitions>
 
-        <Grid x:Name="GridMenu" Grid.Column="0" HorizontalAlignment="Left" Width="70" Height="auto" Background="#FF8F8F8F" >
+        <Grid x:Name="GridMenu" HorizontalAlignment="Center" Width="auto" Height="auto" Grid.RowSpan="1" >
+            <!--Background="#FF2E2E2E"-->
             <StackPanel>
-                <Grid Height="70" Background="White"/>
+                <!--<Grid Height="70" Background="White" Visibility="Hidden"/>-->
 
                 <!--Кнопка "Домой" -->
                 <Button x:Name="HomeButton" Style="{StaticResource ButtonStyle}">
                     <Grid Style="{StaticResource GridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
-                            <ColumnDefinition Width="auto"/>
+                            <!--<ColumnDefinition Width="auto"/>-->
                         </Grid.ColumnDefinitions>
-                        <Image Grid.Column="0" Source="Source\Home.png"/>
+                        <Image Grid.Column="0" Stretch="None" Source="/Source/home_48px.png"/>
                         <Label Grid.Column="1" Content="Parameters indications" Style="{StaticResource LabelStyle}"/>
                     </Grid>
                 </Button>
@@ -212,15 +215,15 @@
                     <Grid Style="{StaticResource GridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
-                            <ColumnDefinition Width="auto"/>
+                            <!--<ColumnDefinition Width="auto"/>-->
                         </Grid.ColumnDefinitions>
-                        <Image Grid.Column="0" Source="Source\PC.png"/>
+                        <Image Grid.Column="0" Source="/Source/settings_48px.png"/>
                         <Label Grid.Column="1" Content="OPC Server Settings" Style="{StaticResource LabelStyle}" />
                     </Grid>
                 </Button>
 
                 <!--Кнопка "Настройки БД" -->
-                <Button x:Name="DataSetButton" Style="{StaticResource ButtonStyle}">
+                <!--<Button x:Name="DataSetButton" Style="{StaticResource ButtonStyle}">
                     <Grid Style="{StaticResource GridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
@@ -229,10 +232,10 @@
                         <Image Grid.Column="0" Source="Source\SDCard.png"/>
                         <Label Grid.Column="1" Content="Data Access Settings" Style="{StaticResource LabelStyle}"  />
                     </Grid>
-                </Button>
+                </Button>-->
 
                 <!--Кнопка "Настройки сети" -->
-                <Button x:Name="NetSetButton"  Style="{StaticResource ButtonStyle}">
+                <!--<Button x:Name="NetSetButton"  Style="{StaticResource ButtonStyle}">
                     <Grid Style="{StaticResource GridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
@@ -241,24 +244,26 @@
                         <Image Grid.Column="0" Source="Source\Server.png" />
                         <Label Grid.Column="1" Content="Server Connection Settings" Style="{StaticResource LabelStyle}"   />
                     </Grid>
-                </Button>
+                </Button>-->
 
                 <!--Кнопка "Лог" -->
                 <Button x:Name="LogButton"  Style="{StaticResource ButtonStyle}">
                     <Grid Style="{StaticResource GridStyle}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="auto"/>
-                            <ColumnDefinition Width="auto"/>
+                            <!--<ColumnDefinition Width="auto"/>-->
                         </Grid.ColumnDefinitions>
-                        <Image Grid.Column="0" Source="Source\log.png"/>
-                        <Label Grid.Column="1" Content="Error Log" Style="{StaticResource LabelStyle}"  />
+                        <Image Grid.Column="0" Source="/Source/list_48px.png"/>
+                        <Label Content="Error Log" Style="{StaticResource LabelStyle}" Height="42" VerticalAlignment="Bottom"  />
                     </Grid>
                 </Button>
 
+                <!--<Button x:Name="StartCalc" Content="Start" Width="auto" Height="50" Background="#FFE0D6D6" Foreground="#DD0E0D0D" BorderBrush="#FFE0D6D6" FontSize="16" Click="StartCalculationButton_Click"  Margin="0,4,0,0" IsEnabled="True" />-->
+                <!--<Button x:Name="StartCalculationButton" Content="Start" Grid.Column="0" Grid.Row="0" Margin="0,0,0,0"   Width="105" Height="35" Background="#FFE0D6D6" Foreground="#DD0E0D0D" BorderBrush="#FFE0D6D6" FontSize="16" Click="StartCalculationButton_Click"  IsEnabled="False" />-->
             </StackPanel>
 
             <!--Кнопка "HamburgerMenu" -->
-            <Button x:Name="ButtonMenu" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{x:Null}" BorderBrush="{x:Null}" Width="70" Height="70" Click="ButtonMenu_Click">
+            <Button x:Name="ButtonMenu" HorizontalAlignment="Right" VerticalAlignment="Top" Background="{x:Null}" BorderBrush="{x:Null}" Width="70" Height="70" Click="ButtonMenu_Click" Visibility="Hidden">
                 <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
                     <Rectangle x:Name="rectangle"  Width="30" Height="5" Margin="0 0 0 0"  Fill="Black" HorizontalAlignment="Center" VerticalAlignment="Top" RenderTransformOrigin="-0,0.5">
                         <Rectangle.RenderTransform>
@@ -293,18 +298,59 @@
                 </Grid>
             </Button>
 
-            <Rectangle x:Name="CalculatedEventRectangle" Height="30" Margin="2,510,2,10" Fill="#FF8F8F8F" Stroke="Black" StrokeThickness="1"/>           
-            
         </Grid>
 
-        <Grid x:Name="ContentGrid" Grid.Column="1" Width="715" Height="500" VerticalAlignment="Top" HorizontalAlignment="Right"    />
+        <!--Product version-->
+        <!--<StackPanel Orientation="Vertical" FlowDirection="LeftToRight" Grid.Column="0" Grid.Row="2" Margin="0,0,0,0">-->
+        <!--Кнопка "Start" -->
+        <Button x:Name="StartCalculationButton" Style="{StaticResource ButtonStyle}" Grid.Column="0" Grid.Row="2" Click="StartCalculationButton_Click" Width="80.909090909091" Height="29.909" IsEnabled="False" Margin="0,-30,0,0" Padding="16,4,16,4">
+            <Grid Style="{StaticResource GridStyle}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto"/>
+                </Grid.ColumnDefinitions>
+                <Label Content="Start" Height="32" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                
+            </Grid>
+        </Button>
+        <Label     x:Name="Version"  Content="Version 2.01"    Grid.Column="0" Grid.Row="2" Margin="5,0,0,0"   Foreground="Gray" HorizontalAlignment="Left"   VerticalAlignment="Bottom" FontSize="12"/>
+        <!--<Rectangle x:Name="CalculatedEventRectangle"           Grid.Column="0" Grid.Row="2" Margin="0,0,0,0" Height="30" Fill="#FF8F8F8F" Stroke="Black" StrokeThickness="1"  Width="auto"/>-->
+        <!--</StackPanel>-->
 
-        <StackPanel Width="auto" Height="60" Orientation="Horizontal" FlowDirection="RightToLeft" VerticalAlignment="Bottom" Grid.Column="1">
-            <Line Stretch="Fill"  Stroke="Black" X2="1" VerticalAlignment="Top"/>
-            <Button x:Name="StartCalculationButton" Content="Start" Width="105" Height="35" Background="#FFE0D6D6" Foreground="#DD0E0D0D" BorderBrush="#FFE0D6D6" FontSize="16" Click="StartCalculationButton_Click"  Margin="10,8,0,7" IsEnabled="False" />
-            <!--<Button x:Name="CancelCalculationButton" Content="Stop Calc" Width="105" Height="35" Background="#FFE0D6D6" Foreground="#DD0E0D0D" BorderBrush="#FFE0D6D6" FontSize="16" Click="CancelCalculationButton_Click"  Margin="10,8,0,7" IsEnabled="True" />-->
-            <Rectangle x:Name="ServerSyncRect2" Height="25" Width="25" HorizontalAlignment="Left" Margin="5,0,0,0" Fill="#FF8F8F8F" Stroke="Black" StrokeThickness="1"/>
-            <Rectangle x:Name="ServerSyncRect1" Height="25" Width="25" HorizontalAlignment="Left" Margin="5,0,0,0" Fill="#FF8F8F8F" Stroke="Black" StrokeThickness="1"/>            
+        <Grid x:Name="ContentGrid" Grid.Column="2" Height="auto" Width="auto" Margin="5,5,5,5" >
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <!--<ColumnDefinition Width="0.03*"/>-->
+            </Grid.ColumnDefinitions>
+        </Grid>
+
+        <StackPanel Orientation="Vertical" FlowDirection="LeftToRight" Grid.Column="2" Grid.Row="2" Margin="0,0,0,0">
+            <Grid Grid.Column="1" Grid.Row="3"  Margin="0 0 0 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="0.15*"/>
+                    <ColumnDefinition Width="0.1*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label   x:Name="ServerSyncRole"             Content="Primary Server:"    Grid.Column="1" Grid.Row="0" Margin="5,0,0,0"   Foreground="Gray" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="ServerSyncRect1"            Content="waiting..."         Grid.Column="2" Grid.Row="0" Margin="0 0 10 0"  Foreground="Black"     HorizontalAlignment="Right"  VerticalAlignment="Center" FontSize="12" FontWeight="Normal"/>
+
+                <Label   x:Name="ServerSyncWritingStatus"    Content="Secondary Server:"  Grid.Column="1" Grid.Row="1" Margin="5 0 0 0"   Foreground="Gray" HorizontalAlignment="Left"   VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="ServerSyncRect2"            Content="waiting..."         Grid.Column="2" Grid.Row="1" Margin="0 0 10 0"  Foreground="Black"     HorizontalAlignment="Right"  VerticalAlignment="Center" FontSize="12" FontWeight="Normal"/>
+
+                <ProgressBar x:Name="ProgressBarInit" Grid.Column="0" Grid.Row="1" Margin="10,0,10,0" Height="18"  Foreground="#FF666666" Background="#FF383838" BorderBrush="Black"/>
+                <TextBlock x:Name="TextProgressBarInit" Text="{Binding ElementName=ProgressBarInit, Path=Value, StringFormat={}{0:0}%}" Grid.Column="0" Grid.Row="1" Margin="10,0,10,0" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#FFDDDDDD" />
+
+            </Grid>
+           
+            <!--<Line Stretch="Fill"  Stroke="Black" X2="1" VerticalAlignment="Top"/>-->
+            <!--<Button x:Name="StartCalculationButton" Content="Start" Width="105" Height="35" Background="#FFE0D6D6" Foreground="#DD0E0D0D" BorderBrush="#FFE0D6D6" FontSize="16" Click="StartCalculationButton_Click"  Margin="10,8,0,7" IsEnabled="False" Visibility="Collapsed" />-->
+            <!--<Button x:Name="CancelCalculationButton" Content="Stop Calc" Width="105" Height="35" Background="#FFE0D6D6" Foreground="#DD0E0D0D" BorderBrush="#FFE0D6D6" FontSize="16" Click="CancelCalculationButton_Click"  Margin="10,8,0,7" IsEnabled="True" Visibility="Visible" />-->
+            <!--<Rectangle x:Name="ServerSyncRect2" Height="20" Width="20" HorizontalAlignment="Left" Margin="5,4,0,0" Fill="#FF8F8F8F" Stroke="Black" StrokeThickness="1"/>
+            <Rectangle x:Name="ServerSyncRect1" Height="20" Width="20" HorizontalAlignment="Left" Margin="5,5,0,0" Fill="#FF8F8F8F" Stroke="Black" StrokeThickness="1"/>-->
         </StackPanel>
 
     </Grid>

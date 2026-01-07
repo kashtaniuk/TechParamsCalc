@@ -11,6 +11,7 @@ using TechParamsCalc.OPC;
 using TechParamsCalc.Factory;
 using TechParamsCalc.DataBaseConnection;
 using TechParamsCalc.DataBaseConnection.ServerConnections;
+using TitaniumAS.Opc.Client.Da.Browsing;
 
 using System.Windows;
 
@@ -23,7 +24,7 @@ namespace TechParamsCalc.Controllers
     internal class CalcController
     {
         internal OpcDaServer opcServer;
-        internal OpcClient opcClient;
+        internal IOpcClient opcClient;
 
         internal ItemsCreator capacityCreator;
         internal ItemsCreator densityCreator;
@@ -35,6 +36,8 @@ namespace TechParamsCalc.Controllers
         internal ItemsCreator levelCreator;
         internal ItemsCreator singleTagCreator;
 
+        public List<OpcDaBrowseElement> NodeElementCollectionFromOPC { get; set; }
+
         public event EventHandler parameterClaculatedSucceedEvent;
 
         public event EventHandler capacitiesReadyEvent;
@@ -44,9 +47,31 @@ namespace TechParamsCalc.Controllers
         public event EventHandler parametersReadyEvent;
         public event EventHandler reinitalizeClientEvent;
         public event EventHandler errorRaisedEvent;
+        public event EventHandler progressBarEvent;
 
+        public List<DataBaseConnection.Capacity.CapacityContent> listOfCapacityFromDB;
+        public List<DataBaseConnection.Density.DensityContent> listOfDensityFromDB;
+        public List<DataBaseConnection.Content.ContentContent> listOfContentFromDB;
+        public List<DataBaseConnection.Level.TankContent> listOfLevelFromDB;
+        //public List<DataBaseConnection.Level.Tank> listOfTankFromDB;
 
-        private AdditionalCalculator additionalCalculator;
+        public HashSet<String> sumListCapacityFromDB = new HashSet<string>();
+        public HashSet<String> sumListDensityFromDB = new HashSet<string>();
+        public HashSet<String> sumListContentFromDB = new HashSet<string>();
+        public HashSet<String> sumListTemperatureFromDB = new HashSet<string>();
+        public HashSet<String> sumListPressureFromDB = new HashSet<string>();
+        public HashSet<String> sumListLevelsFromDB = new HashSet<string>();
+
+        public int countSingleTags;
+        public int countTemperatures;
+        public int countPressures;
+        public int countLevels;
+        public int countCapacities;
+        public int countDensities;
+        public int countContents;
+        public int countTanks;
+
+        //private AdditionalCalculator additionalCalculator;
         private const int maxAttemptsCount = 5;
 
         private bool isServerPrimaryFlipping;      //Изменяется ли в PLC тег, который сигнализирует о том, что в PLC один из экземпляров программы пишет инфо
@@ -69,7 +94,8 @@ namespace TechParamsCalc.Controllers
             Uri url = UrlBuilder.Build(controllerParameters.OpcServerName);
 
             opcServer = new OpcDaServer(url);
-            opcClient = new OpcClient(opcServer, controllerParameters.OpcServerSubstring);
+            //opcClient = new OpcClient(opcServer, controllerParameters.OpcServerSubstring); // для OFC-client
+            opcClient = new OpcClientCitect(opcServer, controllerParameters.OpcServerSubstring); // для OPC Citect-client
             SingleTagsNamesForRW = controllerParameters.SingleTagNamesForRW;
 
             this.controllerParameters = controllerParameters;
@@ -82,17 +108,16 @@ namespace TechParamsCalc.Controllers
             temperatureCreator = new TemperatureCreator(opcClient);
             //2.0. PressureCreator
             pressureCreator = new PressureCreator(opcClient);
-
-            //
+            //     levelCreator
             levelCreator = new LevelCreator(opcClient);
             //3.0. CapacityCreator
-            capacityCreator = new CapacityCreator(opcClient, singleTagCreator);
+            capacityCreator = new CapacityCreatorCitect(opcClient, singleTagCreator);
             //4.0. DensityCreator
-            densityCreator = new DensityCreator(opcClient, singleTagCreator);
+            densityCreator = new DensityCreatorCitect(opcClient, singleTagCreator);
             //5.0. ContentCreator
-            contentCreator = new ContentCreator(opcClient, singleTagCreator);
+            contentCreator = new ContentCreatorCitect(opcClient, singleTagCreator);
             //6.0. ContentCreator
-            levelTankCreator = new LevelTankCreator(opcClient, singleTagCreator);
+            levelTankCreator = new LevelTankCreatorCitect(opcClient, singleTagCreator);
 
 
 
@@ -115,12 +140,13 @@ namespace TechParamsCalc.Controllers
                     if (!opcServer.IsConnected)
                     {
                         opcServer.Connect();
-                        errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Server - ok" });
+                        errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Connect to OPC Server - ok" });
+                        progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "1" });
                     }
                 }
                 catch (Exception)
                 {
-                    MessageBox.Show("Cant connect to OPC", "Alert", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Can`t connect to OPC", "Alert", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
 
             });
@@ -137,12 +163,15 @@ namespace TechParamsCalc.Controllers
 
             //0.2. Формируем группы чтения для OPC-сервера       
             singleTagCreator.CreateOPCReadGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create single tag OPC read group" });
 
             //0.3. Обновленная данными из OPC переменная singleTagCreator.SingleTagFromPLC
             try
             {
                 singleTagCreator.UpdateItemListFromOpc();
+                countSingleTags = singleTagCreator.countItems;
                 errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Single tag - ok" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "2" });
             }
             catch (Exception e)
             {
@@ -154,22 +183,67 @@ namespace TechParamsCalc.Controllers
 
             //0.5. Формируем группы записи для OPC-сервера
             (singleTagCreator as SingleTagCreator).CreateOPCWriteGroup(controllerRole == HostRole.PRIMARY_SERVER);
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create Single tag OPC write group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "3" });
+
+            #endregion
+
+            #region Read data from OPC and DB PG
+
+            // вичитываем ВСЕ переменные из ОРС сервера и сохраняем в NodeElementCollectionFromOPC
+            CreateItemListFromOPC();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Get all tags from OPC" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "4" });
+
+            // формируем список необходимых температур из базы данных DB PG
+            ReadCapacityDataFromDB();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Read capacity from DB" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "5" });
+            ReadDensityDataFromDB();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Read density from DB" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "6" });
+            ReadContentDataFromDB();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Read content from DB" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "7" });
+            ReadLevelDataFromDB();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Read levels from DB" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "8" });
+
+            // формируем list с температурами из БД
+            GetTemperatureFromDB();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create list with temperature" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "9" });
+
+            // формируем list с давлениями из БД
+            GetPressureFromDB();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create list with pressure" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "10" });
+
+            // формируем list с уровнями из БД
+            //GetLevelFromDB();
 
             #endregion
 
             #region 1. Temperatures            
 
             //1.1. Пустой список переменных Temperature
-            temperatureCreator.CreateItemList();
+            //temperatureCreator.CreateItemList();
+            temperatureCreator.CreateItemList(sumListTemperatureFromDB, NodeElementCollectionFromOPC);
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create temperature list" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "11" });
 
             //1.2. Формируем группы чтения для OPC-сервера
             temperatureCreator.CreateOPCReadGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create temperature OPC read group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "12" });
 
             //1.3. Обновленный данными из OPC список переменных Temperature
             try
             {
                 temperatureCreator.UpdateItemListFromOpc();
+                countTemperatures = temperatureCreator.countItems;
                 errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Temperatures - ok" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "14" });
             }
             catch (Exception e)
             {
@@ -182,16 +256,23 @@ namespace TechParamsCalc.Controllers
             #region 2. Pressures           
 
             //2.1. Пустой список переменных Pressure
-            pressureCreator.CreateItemList();
+            //pressureCreator.CreateItemList();
+            pressureCreator.CreateItemList(sumListPressureFromDB, NodeElementCollectionFromOPC);
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create pressure list" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "20" });
 
             //2.2. Формируем группы чтения для OPC-сервера
             pressureCreator.CreateOPCReadGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create pressure OPC read group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "22" });
 
             //2.3. Обновленный данными из OPC список переменных Pressure
             try
             {
                 pressureCreator.UpdateItemListFromOpc();
+                countPressures = pressureCreator.countItems;
                 errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Pressures - ok" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "24" });
             }
             catch (Exception e)
             {
@@ -204,16 +285,24 @@ namespace TechParamsCalc.Controllers
 
             #region Levels
             //1.1. Пустой список переменных Level (strings с наименованием тегов)
-            levelCreator.CreateItemList();
+            //levelCreator.CreateItemList();
+            levelCreator.CreateItemList(sumListLevelsFromDB, NodeElementCollectionFromOPC);
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = $"Create levels list" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "30" });
 
             //1.2. Формируем группы чтения для OPC-сервера
             levelCreator.CreateOPCReadGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create levels OPC read group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "32" });
 
             //1.3. Обновленный данными из OPC список переменных Temperature
             try
             {
                 levelCreator.UpdateItemListFromOpc();
-                errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Levels - ok" });
+                countLevels = levelCreator.countItems;
+
+                errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = $"Levels - ok" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "34" });
             }
             catch (Exception e)
             {
@@ -226,16 +315,23 @@ namespace TechParamsCalc.Controllers
             #region 3. Capacities            
 
             //3.1. Пустой список переменных Capacity
-            capacityCreator.CreateItemList();
+            //capacityCreator.CreateItemList();
+            capacityCreator.CreateItemList(sumListCapacityFromDB, NodeElementCollectionFromOPC);
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create capacity list" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "40" });
 
             //3.2. Формируем группы чтения для OPC-сервера
             capacityCreator.CreateOPCReadGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create capacity OPC read group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "42" });
 
             //3.3. Обновленный данными из OPC список переменных Capacity
             try
             {
                 capacityCreator.UpdateItemListFromOpc();
+                countCapacities = capacityCreator.countItems;
                 errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Capacities - ok" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "44" });
             }
             catch (Exception e)
             {
@@ -252,6 +348,8 @@ namespace TechParamsCalc.Controllers
                 {
                     capacityCreator.UpdateItemListFromDB((temperatureCreator as TemperatureCreator).TemperatureList, (pressureCreator as PressureCreator).PressureList, dbcontext); //Заполененный данными из DB список переменных                
                 }
+                errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Get capacity data from DB" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "46" });
             }
             catch (Exception e)
             {
@@ -262,6 +360,8 @@ namespace TechParamsCalc.Controllers
 
             //3.5. Формируем группы записи для OPC-сервера
             capacityCreator.CreateOPCWriteGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create capacity OPC write group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "48" });
 
             //3.6. Сообщаемм MainWindow о том, что Capacities сформировались
             if (capacitiesReadyEvent != null)
@@ -270,16 +370,23 @@ namespace TechParamsCalc.Controllers
 
             #region 4. Densities
             //4.1. Пустой список переменных Density
-            densityCreator.CreateItemList();
+            //densityCreator.CreateItemList();
+            densityCreator.CreateItemList(sumListDensityFromDB, NodeElementCollectionFromOPC);
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create density list" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "50" });
 
             //4.2. Формируем группы чтения для OPC-сервера
             densityCreator.CreateOPCReadGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create density OPC read group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "52" });
 
             //4.3. Обновленный данными из OPC список переменных Density
             try
             {
                 densityCreator.UpdateItemListFromOpc();
+                countDensities = densityCreator.countItems;
                 errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Densities - ok" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "54" });
             }
             catch (Exception e)
             {
@@ -296,6 +403,8 @@ namespace TechParamsCalc.Controllers
                 {
                     densityCreator.UpdateItemListFromDB((temperatureCreator as TemperatureCreator).TemperatureList, (pressureCreator as PressureCreator).PressureList, dbcontext); //Заполененный данными из DB список переменных                
                 }
+                errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Get density data from DB" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "56" });
             }
             catch (Exception e)
             {
@@ -306,6 +415,8 @@ namespace TechParamsCalc.Controllers
 
             //4.5. Формируем группы записи для OPC-сервера
             densityCreator.CreateOPCWriteGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create density OPC write group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "58" });
 
             //4.6. Сообщаемм MainWindow о том, что Densities сформировались и ими можно наполнять ComboBox в ParametersUC
             if (densitiesReadyEvent != null)
@@ -315,16 +426,23 @@ namespace TechParamsCalc.Controllers
 
             #region 5. Contents
             //5.1. Пустой список переменных Content
-            contentCreator.CreateItemList();
+            //contentCreator.CreateItemList();
+            contentCreator.CreateItemList(sumListContentFromDB, NodeElementCollectionFromOPC);
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create content list" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "60" });
 
             //5.2. Формируем группы чтения для OPC-сервера
             contentCreator.CreateOPCReadGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create content OPC read group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "62" });
 
             //5.3. Обновленный данными из OPC список переменных Content
             try
             {
                 contentCreator.UpdateItemListFromOpc();
+                countContents = contentCreator.countItems;
                 errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Contents - ok" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "64" });
             }
             catch (Exception e)
             {
@@ -341,6 +459,8 @@ namespace TechParamsCalc.Controllers
                 {
                     contentCreator.UpdateItemListFromDB((temperatureCreator as TemperatureCreator).TemperatureList, (pressureCreator as PressureCreator).PressureList, dbcontext); //Заполененный данными из DB список переменных                
                 }
+                errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Get content data from DB" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "66" });
             }
             catch (Exception e)
             {
@@ -351,6 +471,8 @@ namespace TechParamsCalc.Controllers
 
             //5.5. Формируем группы записи для OPC-сервера
             contentCreator.CreateOPCWriteGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create content OPC write group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "68" });
 
             //5.6. Сообщаемм MainWindow о том, что Contents сформировались и ими можно наполнять ComboBox в ParametersUC
             if (contentsReadyEvent != null)
@@ -360,16 +482,23 @@ namespace TechParamsCalc.Controllers
 
             #region 6. LevelTanks
             //6.1. Пустой список переменных LevelTank (список string с именами тегов)
-            levelTankCreator.CreateItemList();
+            //levelTankCreator.CreateItemList();
+            levelTankCreator.CreateItemList(sumListLevelsFromDB, NodeElementCollectionFromOPC);
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create tanks list" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "70" });
 
             //6.2. Формируем группы чтения для OPC-сервера
             levelTankCreator.CreateOPCReadGroup();
+            countTanks = levelTankCreator.countItems;
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create tanks OPC read group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "72" });
 
             //6.3.Обновленный данными из OPC список переменных LevelTank
             try
             {
                 //levelTankCreator.UpdateItemListFromOpc();
                 errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "LevelsTank - ok" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "74" });
             }
             catch (Exception e)
             {
@@ -384,8 +513,11 @@ namespace TechParamsCalc.Controllers
             {
                 using (DBPGContext dbcontext = new DBPGContext())
                 {
-                    (levelTankCreator as LevelTankCreator).UpdateItemListFromDB((levelCreator as LevelCreator).LevelList, (densityCreator as DensityCreator).DensityList, dbcontext); //Заполененный данными из DB список переменных                
+                    //(levelTankCreator as LevelTankCreator).UpdateItemListFromDB((levelCreator as LevelCreator).LevelList, (densityCreator as DensityCreator).DensityList, dbcontext); //Заполененный данными из DB список переменных                
+                    (levelTankCreator as LevelTankCreatorCitect).UpdateItemListFromDB((levelCreator as LevelCreator).LevelList, (densityCreator as DensityCreatorCitect).DensityList, dbcontext); //Заполененный данными из DB список переменных                
                 }
+                errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Get level tanks data from DB" });
+                progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "76" });
             }
             catch (Exception e)
             {
@@ -396,10 +528,12 @@ namespace TechParamsCalc.Controllers
 
             //6.5. Формируем группы записи для OPC-сервера
            levelTankCreator.CreateOPCWriteGroup();
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Create tanks OPC write group" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "78" });
 
             //6.6. Сообщаемм MainWindow о том, что LevelTanks сформировались и ими можно наполнять ComboBox в ParametersUC
-            //if (densitiesReadyEvent != null)
-            //    densitiesReadyEvent.Invoke(this, new EventArgs());
+            if (densitiesReadyEvent != null)
+                densitiesReadyEvent.Invoke(this, new EventArgs());
 
             #endregion
 
@@ -412,10 +546,12 @@ namespace TechParamsCalc.Controllers
                 reinitalizeClientEvent(this, new CustomEventArgs { ErrorMessage = "Реинициализация при ошибке начального чтения после перезагрузки" });
 
             //Создаемкласс для вспомогательных вычислений
-            additionalCalculator = new AdditionalCalculator(temperatureCreator, pressureCreator, densityCreator, capacityCreator, contentCreator, singleTagCreator);
+            //additionalCalculator = new AdditionalCalculator(temperatureCreator, pressureCreator, densityCreator, capacityCreator, contentCreator, singleTagCreator);
+            //isiInitSuccess = true;
 
+            errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "All data init success!!!" });
+            progressBarEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "100" });
             return isiInitSuccess;
-
         }
 
 
@@ -435,7 +571,7 @@ namespace TechParamsCalc.Controllers
 
                     //Capacity calculation
                     capacityCreator.UpdateItemListFromOpc();
-                    foreach (var item in (capacityCreator as CapacityCreator).CapacityList)
+                    foreach (var item in (capacityCreator as CapacityCreatorCitect).CapacityList)
                     {
                         if (!item.IsInValid)
                         {
@@ -445,7 +581,7 @@ namespace TechParamsCalc.Controllers
 
                     //Density calculation                    
                     densityCreator.UpdateItemListFromOpc();
-                    foreach (var item in (densityCreator as DensityCreator).DensityList)
+                    foreach (var item in (densityCreator as DensityCreatorCitect).DensityList)
                     {
                         if (!item.IsInValid)
                         {
@@ -455,19 +591,19 @@ namespace TechParamsCalc.Controllers
 
                     //Content calculation     
                     contentCreator.UpdateItemListFromOpc();
-                    foreach (var item in (contentCreator as ContentCreator).ContentList)
+                    foreach (var item in (contentCreator as ContentCreatorCitect).ContentList)
                     {
                         if (!item.IsInValid)
                         {
-                            item.CalculateContent();
-
+                           item.CalculateContent();
                         }
                     }
 
                     //LevelTank calculation     
                     //levelTankCreator.UpdateItemListFromOpc();
+
                     levelCreator.UpdateItemListFromOpc();
-                    foreach (var item in (levelTankCreator as LevelTankCreator).LevelTankList)
+                    foreach (var item in (levelTankCreator as LevelTankCreatorCitect).LevelTankList)
                     {
                         if (!item.IsInValid)
                         {
@@ -476,7 +612,7 @@ namespace TechParamsCalc.Controllers
                     }
 
                     //Дополнительные расчеты (базируются на ранее расчитанных параметрах)
-                    additionalCalculator.CalculateParameters();
+                    //additionalCalculator.CalculateParameters();
 
 
                     //Сообщаем MainWindow о том, что параметры расчитаны успешно
@@ -550,7 +686,7 @@ namespace TechParamsCalc.Controllers
                         levelTankCreator.WriteItemToOPC();
 
                         //5.9 Записываем асинхронные данные для тегов (то, что может писать только один инстанс)
-                        (singleTagCreator as SingleTagCreator).WriteASyncItemToOPC();
+                        //(singleTagCreator as SingleTagCreator).WriteASyncItemToOPC();
                     }
                     catch (Exception)
                     {
@@ -643,6 +779,155 @@ namespace TechParamsCalc.Controllers
             });
         }
 
+        // Создаем список со всеми тегами из ОРС
+        protected internal void CreateItemListFromOPC()
+        {
+            var browser = new OpcDaBrowser2(opcServer);
+            var items = from s in browser.GetElements(null)
+                        select s;
+            NodeElementCollectionFromOPC = items.ToList();
+        }
 
+        #region Вычитываем все таблицы с БД
+        // Методы для вычитывание структур из базы данных
+        protected internal void ReadCapacityDataFromDB()
+        {
+            try
+            {
+                using (DBPGContext dbcontext = new DBPGContext())
+                {
+                    var result = from c in dbcontext.capacityDescs
+                                     select c;
+                    listOfCapacityFromDB = result.ToList();
+                }
+
+                foreach (var capacity in listOfCapacityFromDB)
+                {
+                    sumListCapacityFromDB.Add(capacity.tagname.Trim());
+                }
+            }
+            catch (Exception e)
+            {
+                if (errorRaisedEvent != null)
+                    errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Error reading Capacity data from DB" + $" {e.Message}" });
+            }
+        }
+
+        protected internal void ReadDensityDataFromDB()
+        {
+            try
+            {
+                using (DBPGContext dbcontext = new DBPGContext())
+                {
+                    var result = from c in dbcontext.densityDescs
+                                 select c;
+                    listOfDensityFromDB = result.ToList();
+                }
+                foreach (var density in listOfDensityFromDB)
+                {
+                    sumListDensityFromDB.Add(density.tagname.Trim());
+                }
+            }
+            catch (Exception e)
+            {
+                if (errorRaisedEvent != null)
+                    errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Error reading Density data from DB" + $" {e.Message}" });
+            }
+        }
+
+        protected internal void ReadContentDataFromDB()
+        {
+            try
+            {
+                using (DBPGContext dbcontext = new DBPGContext())
+                {
+                    var result = from c in dbcontext.contentDescs
+                                 select c;
+                    listOfContentFromDB = result.ToList();
+                }
+
+                foreach (var content in listOfContentFromDB)
+                {
+                    sumListContentFromDB.Add(content.tagname.Trim());
+                }
+            }
+            catch (Exception e)
+            {
+                if (errorRaisedEvent != null)
+                    errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Error reading Content data from DB" + $" {e.Message}" });
+            }
+        }
+
+        protected internal void ReadLevelDataFromDB()
+        {
+            try
+            {
+                using (DBPGContext dbcontext = new DBPGContext())
+                {
+                    var result = from c in dbcontext.tankContents
+                                 select c;
+                    listOfLevelFromDB = result.ToList();
+                }
+
+                foreach (var level in listOfLevelFromDB)
+                {
+                    if (!String.IsNullOrEmpty(level.tankVarDef))
+                        sumListLevelsFromDB.Add(level.tankVarDef.Replace("_TANK", "").Trim());
+                }
+            }
+            catch (Exception e)
+            {
+                if (errorRaisedEvent != null)
+                    errorRaisedEvent.Invoke(this, new CustomEventArgs { ErrorMessage = "Error reading Content data from DB" + $" {e.Message}" });
+            }
+        }
+        // ---------------------------------------------------------------
+
+
+        // Методы для формирования списка с названия тегов из разных таблиц
+        protected internal void GetTemperatureFromDB()
+        {
+            foreach (var capacity in listOfCapacityFromDB)
+            {
+                if(!String.IsNullOrEmpty(capacity.temperature))
+                    sumListTemperatureFromDB.Add(capacity.temperature.Trim());
+            }
+
+            foreach (var content in listOfContentFromDB)
+            {
+                if (!String.IsNullOrEmpty(content.temperature))
+                    sumListTemperatureFromDB.Add(content.temperature.Trim());
+            }
+
+            foreach (var density in listOfDensityFromDB)
+            {
+                if (!String.IsNullOrEmpty(density.temperature))
+                    sumListTemperatureFromDB.Add(density.temperature.Trim());
+            }
+        }
+
+        protected internal void GetPressureFromDB()
+        {
+            foreach (var capacity in listOfCapacityFromDB)
+            {
+                if (!String.IsNullOrEmpty(capacity.pressure))
+                    sumListPressureFromDB.Add(capacity.pressure.Trim());
+            }
+
+            foreach (var content in listOfContentFromDB)
+            {
+                if (!String.IsNullOrEmpty(content.pressure))
+                    sumListPressureFromDB.Add(content.pressure.Trim());
+            }
+
+            foreach (var density in listOfDensityFromDB)
+            {
+                if (!String.IsNullOrEmpty(density.pressure))
+                    sumListPressureFromDB.Add(density.pressure.Trim());
+            }
+        }
+
+        // ---------------------------------------------------------------
+        #endregion
     }
 }

@@ -12,7 +12,7 @@ namespace TechParamsCalc.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "16.6.0.0")]
+    [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.Editors.SettingsDesigner.SettingsSingleFileGenerator", "17.2.0.0")]
     internal sealed partial class Settings : global::System.Configuration.ApplicationSettingsBase {
         
         private static Settings defaultInstance = ((Settings)(global::System.Configuration.ApplicationSettingsBase.Synchronized(new Settings())));
@@ -85,7 +85,7 @@ namespace TechParamsCalc.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Schneider-Aut.OFS.2")]
+        [global::System.Configuration.DefaultSettingValueAttribute("SchneiderElectric.SCADA.OpcDaServer.1\\")]
         public string OPCServerName {
             get {
                 return ((string)(this["OPCServerName"]));
@@ -97,7 +97,7 @@ namespace TechParamsCalc.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("KNH_PO!")]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
         public string OPCServerSubString {
             get {
                 return ((string)(this["OPCServerSubString"]));
@@ -109,19 +109,7 @@ namespace TechParamsCalc.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("EDS01_EXTERNAL_EXCHANGE")]
-        public string ServerSyncWryteTag {
-            get {
-                return ((string)(this["ServerSyncWryteTag"]));
-            }
-            set {
-                this["ServerSyncWryteTag"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("S11_METEO_10")]
+        [global::System.Configuration.DefaultSettingValueAttribute("S08_01_W01_LT01")]
         public string AtmoPressureTag {
             get {
                 return ((string)(this["AtmoPressureTag"]));
@@ -133,19 +121,7 @@ namespace TechParamsCalc.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("EDS01_EXTERNAL_EXCHANGE")]
-        public string ServerSyncWriteTag {
-            get {
-                return ((string)(this["ServerSyncWriteTag"]));
-            }
-            set {
-                this["ServerSyncWriteTag"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("192.168.3.5")]
+        [global::System.Configuration.DefaultSettingValueAttribute("10.12.70.16")]
         public string SQLServerAddress {
             get {
                 return ((string)(this["SQLServerAddress"]));
@@ -157,13 +133,37 @@ namespace TechParamsCalc.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("S11_P05_FC08,S11_A01_FC02")]
+        [global::System.Configuration.DefaultSettingValueAttribute("S08_01_W03_LT01,S08_01_W04_LT01")]
         public string OtherTagsFromOPC {
             get {
                 return ((string)(this["OtherTagsFromOPC"]));
             }
             set {
                 this["OtherTagsFromOPC"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("EXTERNAL_EXCHANGE")]
+        public string ServerSyncWryteTag {
+            get {
+                return ((string)(this["ServerSyncWryteTag"]));
+            }
+            set {
+                this["ServerSyncWryteTag"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("EXTERNAL_EXCHANGE")]
+        public string ServerSyncWriteTag {
+            get {
+                return ((string)(this["ServerSyncWriteTag"]));
+            }
+            set {
+                this["ServerSyncWriteTag"] = value;
             }
         }
     }

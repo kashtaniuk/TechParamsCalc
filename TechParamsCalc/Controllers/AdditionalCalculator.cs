@@ -15,9 +15,9 @@ namespace TechParamsCalc.Controllers
     {
         TemperatureCreator temperatureCreator;
         PressureCreator pressureCreator;
-        DensityCreator densityCreator;
-        CapacityCreator capacityCreator;
-        ContentCreator contentCreator;
+        DensityCreatorCitect densityCreator;
+        CapacityCreatorCitect capacityCreator;
+        ContentCreatorCitect contentCreator;
         SingleTagCreator singleTagCreator;
 
         private bool isInitPropyleneSuccess;
@@ -28,17 +28,17 @@ namespace TechParamsCalc.Controllers
         {
             this.temperatureCreator = temperatureCreator as TemperatureCreator;
             this.pressureCreator = pressureCreator as PressureCreator;
-            this.densityCreator = densityCreator as DensityCreator;
-            this.capacityCreator = capacityCreator as CapacityCreator;
-            this.contentCreator = contentCreator as ContentCreator;
+            this.densityCreator = densityCreator as DensityCreatorCitect;
+            this.capacityCreator = capacityCreator as CapacityCreatorCitect;
+            this.contentCreator = contentCreator as ContentCreatorCitect;
             this.singleTagCreator = singleTagCreator as SingleTagCreator;
 
             //Инициализируем расчет по расходу пропилена
             isInitPropyleneSuccess = InitalizePropyleneCalculations();
             isInitDeltaPSuccess = InitalizeDeltaPCalculations();
-            InitalizePOPCalculations_T03_T06();
-            InitalizePOPCalculations_S13_P03();
-            InitalizePOPCalculations_T06_D08();
+            //InitalizePOPCalculations_T03_T06();
+            //InitalizePOPCalculations_S13_P03();
+            //InitalizePOPCalculations_T06_D08();
 
         }
 

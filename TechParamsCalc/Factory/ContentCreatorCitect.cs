@@ -6,32 +6,29 @@ using System.Threading.Tasks;
 using System.Windows;
 using TechParamsCalc.OPC;
 using TitaniumAS.Opc.Client.Da;
+using TitaniumAS.Opc.Client.Da.Browsing;
 using TechParamsCalc.Parameters;
 using TechParamsCalc.DataBaseConnection;
 using TechParamsCalc.DataBaseConnection.Content;
 
 namespace TechParamsCalc.Factory
 {
-    internal class ContentCreator : ItemsCreator
+    internal class ContentCreatorCitect : ItemsCreator
     {
-        private string[] itemDescContentForRead = new string[] { "SEL", "VAL_HMI", "VAL_CALC", "DELTA_P", "DELTA_T", "CONF" };
-        private string[] itemDescContentForWrite = new string[] { "VAL_CALC" };
-
+        private string[] itemDescContentForRead = new string[] { "SEL", "VAL_HMI", "VAL_CALC_0", "VAL_CALC_1", "VAL_CALC_2", "VAL_CALC_3", "VAL_CALC_4", "DELTA_P_0", "DELTA_P_1", "DELTA_P_2", "DELTA_P_3", "DELTA_P_4", "DELTA_T_0", "DELTA_T_1", "DELTA_T_2", "DELTA_T_3", "DELTA_T_4", "CONF"};
+        private string[] itemDescContentForWrite = new string[] { "VAL_CALC_0", "VAL_CALC_1", "VAL_CALC_2", "VAL_CALC_3", "VAL_CALC_4" };
         public List<Content> ContentList { get; private set; }
         public event EventHandler contentListGeneratedEvent;                      //Событие - "список переменных сформирован"
-        //private short atmoPressure;
         private SingleTagCreator singleTagCreator;
-
         private OpcDaItemValue[] contentValues;
+        private int countOfErrorsInReading;
 
-        public ContentCreator(IOpcClient opcClient, ItemsCreator itemCreator/*short atmoPressure*/) : base(opcClient)
-        {
-            //@"^.*_CONT.*$"            
-            subStringTagName = @"^[S]\d{2,3}[_]\w*[_]CONT$";
+        public ContentCreatorCitect(IOpcClient opcClient, ItemsCreator itemCreator/*short atmoPressure*/) : base(opcClient)
+        {          
+            subStringTagName = @"^[S]\d{2,3}[_]\d{2,3}[_]\w*[_]CONT_SEL$";
+
             ContentList = new List<Content>();
-            //01.04.2020
-            //this.atmoPressure = atmoPressure;
-            //this.atmoPressure = (itemCreator as SingleTagCreator).AtmoPressureFromOPC;
+
             singleTagCreator = itemCreator as SingleTagCreator;
         }
 
@@ -40,7 +37,31 @@ namespace TechParamsCalc.Factory
         {
             //Считываем из OPC-Reader строки с названиями переменных
             nodeElementCollection = opcClient.ReadDataToNodeList(subStringTagName).ToList();
-            
+
+            // удаляем _R
+            foreach (var item in nodeElementCollection)
+            {
+                item.Name = item.Name.Replace("_SEL", "");
+                item.ItemId = item.Name.Replace("_SEL", "");
+            }
+
+        }
+
+        // перегруженый метод создания списка content
+        protected internal override void CreateItemList(HashSet<string> contentDB, List<OpcDaBrowseElement> opcDaBrowseElements)
+        {
+            //Считываем из OPC-Reader строки с названиями переменных
+            foreach (var content in contentDB)
+            {
+                var temp = opcDaBrowseElements.FirstOrDefault(t => t.ItemId == content + "_SEL");
+                if (temp != null)
+                {
+                    temp.Name = temp.Name.Replace("_SEL", "");
+                    temp.ItemId = temp.Name.Replace("_SEL", "");
+                    nodeElementCollection.Add(temp);
+                }
+            }
+            countItems = nodeElementCollection.Count;
         }
 
         //Создаем группу для чтения из OPC-сервера
@@ -53,18 +74,18 @@ namespace TechParamsCalc.Factory
             this.InitDataGroup(itemDescContentForRead, "Contents_Read_Group", nodeElementCollection, out dataGroupRead, out readingResults, out listOfValidItems);
             listOfValidItems.ForEach(i => ContentList.Add(new Content(i)));
 
-            string contentName;
+            //string contentName;
             //Формируем список пустых объектов Density
-            foreach (var result in readingResults)
-            {
-                if (result.Error.Succeeded)
-                {
-                    contentName = result.Item.ItemId.Substring(result.Item.ItemId.LastIndexOf('!') + 1);
-                    contentName = contentName.Substring(0, contentName.LastIndexOf('.'));
-                    if (!ContentList.Any(d => d.TagName == contentName))
-                        ContentList.Add(new Content(contentName));
-                }
-            }
+            //foreach (var result in readingResults)
+            //{
+            //    if (result.Error.Succeeded)
+            //    {
+            //        contentName = result.Item.ItemId.Substring(0, result.Item.ItemId.IndexOf("_TANK") + 1);
+            //        //contentName = contentName.Substring(0, contentName.LastIndexOf('.'));
+            //        if (!ContentList.Any(d => d.TagName == contentName))
+            //            ContentList.Add(new Content(contentName));
+            //    }
+            //}
 
             if (contentListGeneratedEvent != null)
                 contentListGeneratedEvent.Invoke(this, new EventArgs());
@@ -87,45 +108,62 @@ namespace TechParamsCalc.Factory
         {
             contentValues = dataGroupRead.Read(dataGroupRead.Items, OpcDaDataSource.Device);
 
+            countOfErrorsInReading = 0;
             int valueCollectionIterator = 0;
             var content = default(Content);
-            foreach (var item in nodeElementCollection)
+
+            foreach (var item in ContentList) // nodeElementCollection
             {
                 try
                 {
                     //Initialization of fields of capacity instance
-                    content = ContentList.FirstOrDefault(c => c.TagName == item.Name);
-                    if (content != null)
+                    content = ContentList.FirstOrDefault(c => c.TagName == item.TagName);
+
+                    if (content != null && contentValues[0 + valueCollectionIterator].Error.Succeeded)
                     {
-                        content.Sel = (short)contentValues[0 + valueCollectionIterator].Value;
-                        content.ValHmi = (short)contentValues[1 + valueCollectionIterator].Value;
+
+                        if (contentValues[0 + valueCollectionIterator].Value != null)
+                            content.Sel = short.Parse(contentValues[0 + valueCollectionIterator].Value.ToString());
+
+                        if (contentValues[1 + valueCollectionIterator].Value != null)
+                            content.ValHmi = (short)(double.Parse(contentValues[1 + valueCollectionIterator].Value.ToString()) * 100);
+
                         //_capacity.val_calc = (short)capacityValues[2 + _valueCollectionIterator].Value;
-                        content.DeltaP = (short[])contentValues[3 + valueCollectionIterator].Value;
-                        content.DeltaT = (short[])contentValues[4 + valueCollectionIterator].Value;
-                        content.Conf = (short)contentValues[5 + valueCollectionIterator].Value;
+
+                        for (int i = 0; i < content.DeltaP.Length; i++)
+                            content.DeltaP[i] = (short)(double.Parse(contentValues[7 + i + valueCollectionIterator].Value.ToString()) * 100);
+
+                        for (int i = 0; i < content.DeltaT.Length; i++)
+                            content.DeltaT[i] = (short)(double.Parse(contentValues[12 + i + valueCollectionIterator].Value.ToString()) * 10);
+
+                        if (contentValues[17 + valueCollectionIterator].Value != null)
+                            content.Conf = short.Parse(contentValues[17 + valueCollectionIterator].Value.ToString());
 
                         //Инициализация массива description при первом апдейте списка capacity
                         if (content.PercDescription == null)
                             content.PercDescription = new string[5];
 
-                        //Инициализация атмосферного давления, полученного из OPC
-                        //01.04.2020 Передаем объект SingleTag чтобы прочитать из него атмосферное давление 
-                        //content.AtmoPressure = atmoPressure;
                         content.AtmoPressure = singleTagCreator.AtmoPressureFromOPC;
+                    }
+                    else
+                    {
+                        content.IsInValid = true;
+                        countOfErrorsInReading++;
                     }
                 }
                 catch (Exception)
                 {
-                    throw new Exception($"Content Creator error handling. Tag = {item.Name}");
+                    throw new Exception($"Content Creator error handling. Tag = {item.TagName}");
                 }
                 finally
                 {
                     valueCollectionIterator += itemDescContentForRead.Length;
                 }
-                
             }
+            //if (countOfErrorsInReading > 0)
+            //    throw new Exception($"Количество ошибок чтения Content - {countOfErrorsInReading}");
         }
-        
+
         //Обновление Content тегов из Базы Данных
         protected internal override void UpdateItemListFromDB(List<Temperature> temperatureList, List<Pressure> pressureList, DBPGContext dbContext)
         {
@@ -153,7 +191,7 @@ namespace TechParamsCalc.Factory
                              description = itemContData.description,
                              isWriteble = itemContData.isWritable
                          };
-            
+
 
             // ----------------------------------------------------------------------------
             var content = default(Characteristic);
@@ -166,9 +204,18 @@ namespace TechParamsCalc.Factory
                     if (content != null)
                     {
                         Array.Copy(item.percDescription, ((Content)content).PercDescription, 5); //5 компонентов
+
+                        //for (int i = 0; i < item.percDescription.Length; i++)
+                        //{
+                        //    if (item.percDescription[i] != null)
+                        //    {
+                        //        ((Content)content).PercDescription[i] = item.percDescription[i];
+                        //    }
+                        //}
+
                         content.Description = item.description;
                         ((Content)content).Temperature = item.temperature as Temperature;
-                        ((Content)content).Pressure = item.pressure as Pressure == null ? new Pressure("PressureSample") : item.pressure as Pressure;                        
+                        ((Content)content).Pressure = item.pressure as Pressure == null ? new Pressure("PressureSample") : item.pressure as Pressure;
                         ((Content)content).IsWriteble = item.isWriteble ?? false;
                     }
                 }
@@ -179,7 +226,7 @@ namespace TechParamsCalc.Factory
                 }
             }
         }
-       
+
 
         //Запись тегов в OPC
         protected internal override void WriteItemToOPC()
@@ -188,7 +235,13 @@ namespace TechParamsCalc.Factory
             foreach (var item in ContentList)
             {
                 if (item.IsWriteble)
-                    valuesForWriting[i++] = item.ValCalc;
+                {
+                    foreach (short value in item.ValCalc)
+                    {
+                        valuesForWriting[i++] = value;
+                    }
+                }
+                //valuesForWriting[i++] = item.ValCalc;
             }
 
             if (opcClient.OpcServer.IsConnected)

@@ -50,7 +50,7 @@ namespace TechParamsCalc.Factory
         public string[] SingleTagNames { get; private set; }
 
         public short[] SingleTagFromPLC { get; private set; }   //Теги обмена данными по сети от контроллера. Слово, которое сигнализирует о том, что в OPC идет запись располагается в SingleTagFromPLC[0]
-        public short AtmoPressureFromOPC { get; set; } = 10101; //Тег атмосферного давления от контроллера        
+        public short AtmoPressureFromOPC { get; set; } = 10000/*10101*/; //Тег атмосферного давления от контроллера        
 
         public float averReactFlow { get; set; }    //Расход реакционной смеси от А01 для расчета расхода пропилена на А02
         public float AcnWaterMassFlow { get; set; } //РАсхо массовый ACN с водой из D02
@@ -77,7 +77,7 @@ namespace TechParamsCalc.Factory
         private OpcDaGroup dataGroupForSynchroWriting;
         private object[] syncValuesForWriting;
 
-        public SingleTagCreator(OpcClient opcClient, string[] singleTagNames) : base(opcClient)
+        public SingleTagCreator(IOpcClient opcClient, string[] singleTagNames) : base(opcClient)
         {
             SingleTagNames = singleTagNames;
             SingleTagFromPLC = new short[100];
@@ -98,134 +98,135 @@ namespace TechParamsCalc.Factory
                 //[0] Чтение массива переменных Exchange из PLC (элемент 0 массива - статус записи Primary Sever, элемент 1 - для Secondary Server'a)
                 new OpcDaItemDefinition
                 {
-                    ItemId = opcClient.ParentNodeDescriptor + SingleTagNames[0],
+                    ItemId = opcClient.ParentNodeDescriptor + "EXTERNAL_EXCHANGE_0", // SingleTagNames[0],
                     IsActive = true
                 },
+
                 //[1] Атмосферное давление
                 new OpcDaItemDefinition
                 {
-                    ItemId = opcClient.ParentNodeDescriptor + SingleTagNames[1],
+                    ItemId = opcClient.ParentNodeDescriptor + "EXTERNAL_EXCHANGE_1", // SingleTagNames[1],
                     IsActive = true
                 },
 
                 //[2] Расход реакционной смеси от А01 для расчета расхода пропилена на А02 
                 new OpcDaItemDefinition
                 {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_P05_FC08_AVER_HMI",
+                    ItemId = opcClient.ParentNodeDescriptor + "EXTERNAL_EXCHANGE_2", // S11_P05_FC08_AVER_HMI
                     IsActive = true
                 },
 
                 //[3] РАсход массовый ACN с водой из D02
                 new OpcDaItemDefinition
                 {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_A01_FC02_AVER_HMI",
+                    ItemId = opcClient.ParentNodeDescriptor + "EXTERNAL_EXCHANGE_3", // S11_A01_FC02_AVER_HMI
                     IsActive = true
                 },
 
                 //[4] Задание температуры в реакторе 1.R01 для расчета дельты к заданию давления реакции (см. AdditionalCalculator класс)
                 new OpcDaItemDefinition
                 {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_R01_TT01_SP",
-                    IsActive = true
-                },
-
-                //[5] Массовый расход реакционной смеси S11_P05_FC01_HMI
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_P05_FC01.HMI",
-                    IsActive = true
-                },
-
-                //[6] Плотность перекиси со склада (лабораторные показатели)
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S12_P02_AP01.HMI",
-                    IsActive = true
-                },
-
-                //[7] Расход массовый ACN из сборника 1.D02 
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_A01_FC02_AVER_HMI",
-                    IsActive = true
-                },
-
-                //[8] Содержание ACN в сборнике 1.D02
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_A01_FC02_DENS.PERC[1]",
-                    IsActive = true
-                },
-
-                //[9] Заданный массовый расход перекиси к реакторам
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S12_P02_FT01_SP",
-                    IsActive = true
-                },
-
-                //[10] Крепость ACN в колонне 1.Т01 в точке азеотропы
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_T01_PT05_AZEO_HMI",
-                    IsActive = true
-                },                
-                
-                //[11] Температура от массового расходомера PO в сборник 1.D08
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_P13_FT01_Mass.TEMPERATURE",
-                    IsActive = true
-                },
-
-                //[12] Плотность от массового расходомера PO в сборник 1.D08
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_P13_FT01_Mass.DENSITY",
-                    IsActive = true
-                },
-
-                //[13] Плотность от массового расходомера PO S13_P03_FC01
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S13_P03_FT01_Mass.DENSITY",
-                    IsActive = true
-                },
-
-                //[14] Температура от массового расходомера PO со склада
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S13_P03_FT01_Mass.TEMPERATURE",
-                    IsActive = true
-                },
-
-                //[15] Плотность от массового расходомера PO в колонну 1.T06 S11_T06_FT02
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_T06_FT02_Mass.DENSITY",
-                    IsActive = true
-                },
-
-                //[16] Температура от массового расходомера PO в колонну 1.T06 S11_T06_FT02
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_T06_FT02_Mass.TEMPERATURE",
-                    IsActive = true
-                },
-
-                //[17] % воды в смеси от колонны 1.Т06 к сборнику 1.D08
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_T06_AP01_START_WATER",
-                    IsActive = true
-                },
-
-                //[18] % альдегидов в смеси от колонны 1.Т06 к сборнику 1.D08
-                new OpcDaItemDefinition
-                {
-                    ItemId = opcClient.ParentNodeDescriptor + "S11_T06_AP01_START_ALD",
+                    ItemId = opcClient.ParentNodeDescriptor + "EXTERNAL_EXCHANGE_4", // S11_R01_TT01_SP
                     IsActive = true
                 }
+
+                //[5] Массовый расход реакционной смеси S11_P05_FC01_HMI
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_P05_FC01.HMI",
+                //    IsActive = true
+                //},
+
+                //[6] Плотность перекиси со склада (лабораторные показатели)
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S12_P02_AP01.HMI",
+                //    IsActive = true
+                //},
+
+                //[7] Расход массовый ACN из сборника 1.D02 
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_A01_FC02_AVER_HMI",
+                //    IsActive = true
+                //},
+
+                //[8] Содержание ACN в сборнике 1.D02
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_A01_FC02_DENS.PERC[1]",
+                //    IsActive = true
+                //},
+
+                //[9] Заданный массовый расход перекиси к реакторам
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S12_P02_FT01_SP",
+                //    IsActive = true
+                //},
+
+                //[10] Крепость ACN в колонне 1.Т01 в точке азеотропы
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_T01_PT05_AZEO_HMI",
+                //    IsActive = true
+                //},                
+                
+                //[11] Температура от массового расходомера PO в сборник 1.D08
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_P13_FT01_Mass.TEMPERATURE",
+                //    IsActive = true
+                //},
+
+                //[12] Плотность от массового расходомера PO в сборник 1.D08
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_P13_FT01_Mass.DENSITY",
+                //    IsActive = true
+                //},
+
+                //[13] Плотность от массового расходомера PO S13_P03_FC01
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S13_P03_FT01_Mass.DENSITY",
+                //    IsActive = true
+                //},
+
+                //[14] Температура от массового расходомера PO со склада
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S13_P03_FT01_Mass.TEMPERATURE",
+                //    IsActive = true
+                //},
+
+                //[15] Плотность от массового расходомера PO в колонну 1.T06 S11_T06_FT02
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_T06_FT02_Mass.DENSITY",
+                //    IsActive = true
+                //},
+
+                //[16] Температура от массового расходомера PO в колонну 1.T06 S11_T06_FT02
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_T06_FT02_Mass.TEMPERATURE",
+                //    IsActive = true
+                //},
+
+                //[17] % воды в смеси от колонны 1.Т06 к сборнику 1.D08
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_T06_AP01_START_WATER",
+                //    IsActive = true
+                //},
+
+                //[18] % альдегидов в смеси от колонны 1.Т06 к сборнику 1.D08
+                //new OpcDaItemDefinition
+                //{
+                //    ItemId = opcClient.ParentNodeDescriptor + "S11_T06_AP01_START_ALD",
+                //    IsActive = true
+                //}
 
 
             };
@@ -233,7 +234,7 @@ namespace TechParamsCalc.Factory
             dataGroupRead = opcClient.OpcServer.AddGroup("SingleTagGroupRead");                               //Группа переменных для чтения (записи) из OPC-сервера 
             dataGroupRead.IsActive = true;
             OpcDaItemResult[] results = dataGroupRead.AddItems(simpleTagsItemDefinitions);                   //Добавление переменных в группу             
-
+            countItems = results.Length;
         }
 
         protected internal override void UpdateItemListFromOpc()
@@ -253,89 +254,91 @@ namespace TechParamsCalc.Factory
             try
             {
                 //[0] Массив short'ов [0-100]
-
                 if (singleValues[0].Error.Succeeded)
-                    SingleTagFromPLC = (short[])(singleValues[0].Value);
+                    SingleTagFromPLC[0] = short.Parse(singleValues[0].Value.ToString());
 
                 //[1] Тег атмосферного давления от контроллера        
 
                 if (singleValues[1].Error.Succeeded)
-                    AtmoPressureFromOPC = (short)singleValues[1].Value;
+                    SingleTagFromPLC[1] = short.Parse(singleValues[1].Value.ToString());
+                //AtmoPressureFromOPC = (short)singleValues[1].Value;
 
                 //[2] Усредненный объемный расход реакционной смеси    
 
-                if (singleValues[2].Error.Succeeded)
-                    averReactFlow = (short)singleValues[2].Value * 0.1f;
+                //if (singleValues[2].Error.Succeeded)
+                //    averReactFlow = (short)singleValues[2].Value * 0.1f;
 
                 //[3] Усредненный массовый расход ACN и воды из A02
 
                 if (singleValues[3].Error.Succeeded)
-                    AcnWaterMassFlow = (short)(singleValues[3].Value) * 0.1f;
+                    SingleTagFromPLC[3] = short.Parse(singleValues[3].Value.ToString());
+                //AcnWaterMassFlow = (short)(singleValues[3].Value) * 0.1f;
 
                 //[4] Задание температуры в реакторе 1.R01 для расчета дельты к заданию давления реакции (см. AdditionalCalculator класс)
 
                 if (singleValues[4].Error.Succeeded)
-                    S11_R01_TT01_SP = (short)(singleValues[4].Value) * 0.1f;
+                    SingleTagFromPLC[4] = short.Parse(singleValues[4].Value.ToString());
+                //S11_R01_TT01_SP = (short)(singleValues[4].Value) * 0.1f;
 
                 //[5] Массовый расход реакционной смеси S11_P05_FC01_HMI
-                if (singleValues[5].Error.Succeeded)
-                    S11_P05_FC01_HMI = (short)(singleValues[5].Value) * 0.1f;
+                //if (singleValues[5].Error.Succeeded)
+                //    S11_P05_FC01_HMI = (short)(singleValues[5].Value) * 0.1f;
 
                 //[6] Плотность перекиси со склада (лабораторные показатели)
-                if (singleValues[6].Error.Succeeded)
-                    S12_P02_AP01_HMI = (short)(singleValues[6].Value) * 0.01f;
+                //if (singleValues[6].Error.Succeeded)
+                //    S12_P02_AP01_HMI = (short)(singleValues[6].Value) * 0.01f;
 
                 //[7] Расход массовый ACN из сборника 1.D02 
-                if (singleValues[7].Error.Succeeded)
-                    S11_A01_FC02_AVER_HMI = (short)(singleValues[7].Value) * 0.1f;
+                //if (singleValues[7].Error.Succeeded)
+                //    S11_A01_FC02_AVER_HMI = (short)(singleValues[7].Value) * 0.1f;
 
                 //[8] Содержание ACN в сборнике 1.D02
-                if (singleValues[8].Error.Succeeded)
-                    S11_D02_AP01_HMI = (short)(singleValues[8].Value) * 0.01f;
+                //if (singleValues[8].Error.Succeeded)
+                //    S11_D02_AP01_HMI = (short)(singleValues[8].Value) * 0.01f;
 
                 //[9] Заданный массовый расход перекиси к реакторам
-                if (singleValues[9].Error.Succeeded)
-                    S12_P02_FT01_SP = (short)(singleValues[9].Value) * 0.1f;
+                //if (singleValues[9].Error.Succeeded)
+                //    S12_P02_FT01_SP = (short)(singleValues[9].Value) * 0.1f;
 
                 //[10] Крепость ACN в колонне 1.Т01 в точке азеотропы
-                if (singleValues[10].Error.Succeeded)
-                    S11_T01_PT05_AZEO_HMI = (short)(singleValues[10].Value) * 0.01f;
+                //if (singleValues[10].Error.Succeeded)
+                //    S11_T01_PT05_AZEO_HMI = (short)(singleValues[10].Value) * 0.01f;
 
                 //[11] Температура от массового расходомера PO в сборник 1.D08
-                if (singleValues[11].Error.Succeeded)
-                    S11_P13_FT01_Mass_TEMPERATURE = (float)singleValues[11].Value;
+                //if (singleValues[11].Error.Succeeded)
+                //    S11_P13_FT01_Mass_TEMPERATURE = (float)singleValues[11].Value;
 
                 //[12] Плотность от массового расходомера PO в сборник 1.D08
-                if (singleValues[12].Error.Succeeded)
-                    S11_P13_FT01_Mass_DENSITY = (float)singleValues[12].Value;
+                //if (singleValues[12].Error.Succeeded)
+                //    S11_P13_FT01_Mass_DENSITY = (float)singleValues[12].Value;
 
                 //[13] Плотность от массового расходомера PO S13_P03_FC01
-                if (singleValues[13].Error.Succeeded)
-                    S13_P03_FT01_Mass_DENSITY = (float)singleValues[13].Value;
+                //if (singleValues[13].Error.Succeeded)
+                //    S13_P03_FT01_Mass_DENSITY = (float)singleValues[13].Value;
 
                 //[14] Температура от массового расходомера PO со склада
-                if (singleValues[14].Error.Succeeded)
-                    S13_P03_FT01_Mass_TEMPERATURE = (float)singleValues[14].Value;
+                //if (singleValues[14].Error.Succeeded)
+                //    S13_P03_FT01_Mass_TEMPERATURE = (float)singleValues[14].Value;
 
                 //[15] Плотность от массового расходомера PO в колонну 1.T06 S11_T06_FT02
-                if (singleValues[15].Error.Succeeded)
-                    S11_T06_FT02_Mass_DENSITY = (float)singleValues[15].Value;
+                //if (singleValues[15].Error.Succeeded)
+                //    S11_T06_FT02_Mass_DENSITY = (float)singleValues[15].Value;
 
                 //[16] Температура от массового расходомера PO в колонну 1.T06 S11_T06_FT02
-                if (singleValues[16].Error.Succeeded)
-                    S11_T06_FT02_Mass_TEMPERATURE = (float)singleValues[16].Value;
+                //if (singleValues[16].Error.Succeeded)
+                //    S11_T06_FT02_Mass_TEMPERATURE = (float)singleValues[16].Value;
 
                 //[17] % воды в смеси от колонны 1.Т06 к сборнику 1.D08
-                if (singleValues[17].Error.Succeeded)
-                    S11_T06_AP01_START_WATER = Convert.ToDouble(singleValues[17].Value);
+                //if (singleValues[17].Error.Succeeded)
+                //    S11_T06_AP01_START_WATER = Convert.ToDouble(singleValues[17].Value);
 
                 //[18] % альдегидов в смеси от колонны 1.Т06 к сборнику 1.D08
-                if (singleValues[18].Error.Succeeded)
-                    S11_T06_AP01_START_ALD = Convert.ToDouble(singleValues[18].Value);
+                //if (singleValues[18].Error.Succeeded)
+                //    S11_T06_AP01_START_ALD = Convert.ToDouble(singleValues[18].Value);
 
                 #endregion
             }
-            catch (Exception e)
+            catch (Exception)
             {
 
 
@@ -358,7 +361,8 @@ namespace TechParamsCalc.Factory
             {
                 new OpcDaItemDefinition
                 {
-                    ItemId = opcClient.ParentNodeDescriptor + SingleTagNames[0] + (isPrimaryServer ? "[0]" : "[1]"),
+                    //ItemId = opcClient.ParentNodeDescriptor + SingleTagNames[0] + (isPrimaryServer ? "[0]" : "[1]"),
+                    ItemId = opcClient.ParentNodeDescriptor + SingleTagNames[0] + (isPrimaryServer ? "_0" : "_1"),
                     IsActive = true
                 }
         };

@@ -14,9 +14,9 @@ namespace TechParamsCalc.Parameters
         public short Sel { get; set; }
         public short ValHmi { get; set; }
         public short[] ValCalc { get; set; }
-        public short[] DeltaT { get; set; }
-        public short[] DeltaP { get; set; }
-        public string[] PercDescription { get; set; }
+        public short[] DeltaT { get; set; } = new short[5];
+        public short[] DeltaP { get; set; } = new short[5];
+        public string[] PercDescription { get; set; } = new string[5];
 
         //configurationCode = 10 : разряд единиц - признак снятия ограничения 0-100% (0 - не снято; 1 - снято); Разряд десятков - выбор формулы для расчетов
         public short Conf { get; set; }
@@ -39,7 +39,7 @@ namespace TechParamsCalc.Parameters
 
             try
             {
-                mix = new Mix(PercDescription);               
+                mix = new Mix(PercDescription);
 
                 try
                 {

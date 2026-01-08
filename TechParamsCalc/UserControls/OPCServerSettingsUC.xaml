@@ -5,49 +5,140 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:TechParamsCalc"
              mc:Ignorable="d" 
-             d:DesignHeight="500" d:DesignWidth="500" Initialized="UserControl_Initialized">
+             d:DesignHeight="500" d:DesignWidth="800" Initialized="UserControl_Initialized">
     <Grid >
         <Grid.RowDefinitions>
+            <RowDefinition Height="0.1*"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="0.15*"/>
+            <!--<RowDefinition Height="*"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>-->
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="0.2*"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="0" Grid.Column="2" Grid.RowSpan="6" Width="auto" Height="auto">
-            <Button x:Name="SaveButton"  Grid.Row="0" Grid.Column="1" Width="25" Height="25"  Foreground="#DD0E0101" BorderBrush="#FFE0D6D6" HorizontalAlignment="Right" VerticalAlignment="Top"    Margin="0,5,5,5" Click="SaveButton_Click">
+        <!--"Настройки OPC" -->
+        <Label x:Name="OPCServerSettingsDescription" Content="OPC Server" Margin="0 0 0 0" Foreground="Gray" HorizontalAlignment="Center" VerticalAlignment="Center" Width="auto" FontSize="14" FontWeight="Bold"/>
+
+        <StackPanel Grid.Row="1" Grid.Column="0" Grid.RowSpan="1" Width="auto" Height="auto" Margin="5,5,5,5" Background="#FF666666">
+            <Grid Grid.Column="1" Margin="10 45 0 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Label x:Name="OPCServerStateLabelDesc"         Content="OPC Server State:"      Grid.Column="0" Grid.Row="0" Margin="0 0 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                <!--<Rectangle x:Name ="ServerStateRectangle"                                        Grid.Column="1" Grid.Row="0" Margin="5,0,0,0" Width="27" Height="27" Fill="#FFE61212" HorizontalAlignment="Left"   />-->
+                <Label   x:Name="ServerStateRectangle"      Content="waiting for the state..."   Grid.Column="1" Grid.Row="0" Margin="5 0 0 0"         Foreground="Black" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12" FontWeight="Normal"/>
+            </Grid>
+
+            <Label x:Name="OPCServerNameSettingLabel"       Content="OPC Server Name:"       Grid.Column="0" Grid.Row="1" Margin="10 40 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            <TextBox x:Name="OPCServerNameSettingTextBox"                                    Grid.Column="0" Grid.Row="1" Margin="14,0,0,0" Height="25" Width="230" HorizontalAlignment="Left" TextChanged="OPCServerNameSettingTextBox_TextChanged" FontSize="12" Foreground="#FF1F1F1F"/>
+
+            <Label x:Name="OPCServerSubDescSettingLabel"    Content="OPC Server SubDir:"     Grid.Column="0" Grid.Row="2" Margin="10 10 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            <TextBox x:Name="OPCServerSubDescSettingTextBox"                                 Grid.Column="0" Grid.Row="2" Margin="14,0,0,0" Height="25" Width="230" HorizontalAlignment="Left" FontSize="12" TextChanged="OPCServerSubDescSettingTextBox_TextChanged" Foreground="#FF1F1F1F"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.RowSpan="1" Width="auto" Height="auto" Margin="5,5,5,5" Background="#FF666666" Orientation="Horizontal" FlowDirection="LeftToRight">
+            <Button x:Name="SaveButton"  Grid.Row="0" Grid.Column="1" Width="40" Height="40"  Foreground="#DD0E0101" HorizontalAlignment="Right"    Margin="5,0,5,0" Click="SaveButton_Click" BorderBrush="{x:Null}">
                 <Button.Background>
-                    <ImageBrush ImageSource="/TechParamsCalc;component/Source/save.png"/>
+                    <ImageBrush ImageSource="/Source/save_32px.png" Stretch="None"/>
+                </Button.Background>
+            </Button>
+            <Label x:Name="EnableWritingCheckBoxlabel"      Content="Enable writing to OPC:  " Grid.Column="0" Grid.Row="1" Margin="60 10 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            <CheckBox x:Name ="WritingEnableCheckBox"                                        Grid.Column="1" Grid.Row="1" IsChecked="{Binding isEnableWritingChecked, Mode=TwoWay }" HorizontalAlignment="Left" Background="#FF363636">
+                <CheckBox.LayoutTransform>
+                    <ScaleTransform ScaleX="2" ScaleY="2" />
+                </CheckBox.LayoutTransform>
+            </CheckBox>
+        </StackPanel>
+
+        <!--"Настройки Postgre SQL" -->
+        <Label x:Name="DataAccessDescription" Content="PostgreSQL Server"                 Grid.Row="0" Grid.Column="1" Foreground="Gray" HorizontalAlignment="Center" VerticalAlignment="Center" Width="auto" FontSize="14" FontWeight="Bold"/>
+
+        <StackPanel Grid.Row="1" Grid.Column="1" Grid.RowSpan="1" Width="auto" Height="auto" Margin="5,5,5,5" Background="#FF666666">
+            <Label   x:Name="SQLServerAddressSetting"       Content="SQL Server Address:" Grid.Row="1" Grid.Column="1" Margin="10 10 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <TextBox x:Name="SQLServerAddressSettingTextBox"                              Grid.Row="1" Grid.Column="1" Margin="14,0,0,0" Height="25" Width="230"  HorizontalAlignment="Left" FontSize="12" TextChanged="SQLServerAddressSettingTextBox_TextChanged" Foreground="#FF1F1F1F"/>
+
+            <Label   x:Name="SQLServerDataBaseNameSetting"  Content="Table Name:"         Grid.Row="3" Grid.Column="1" Margin="10 50 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <TextBox x:Name="SQLServerDataBaseNameSettingTextBox"                         Grid.Row="3" Grid.Column="1" Margin="14,0,0,0" Height="25" Width="230"  HorizontalAlignment="Left" FontSize="12" TextChanged="SQLServerDataBaseNameSettingTextBox_TextChanged" Foreground="#FF1F1F1F"/>
+
+            <Label   x:Name="SQLServerLoginSetting"         Content="Login:"              Grid.Row="4" Grid.Column="1" Margin="10 10 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <TextBox x:Name="SQLServerLoginSettingTextBox"                                Grid.Row="4" Grid.Column="1" Margin="14,0,0,0" Height="25" Width="230"  HorizontalAlignment="Left" FontSize="12" TextChanged="SQLServerLoginSettingTextBox_TextChanged" Foreground="#FF1F1F1F"/>
+
+            <Label   x:Name="SQLServerPasswordSetting"      Content="Password:"           Grid.Row="5" Grid.Column="1" Margin="10 10 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <PasswordBox x:Name="SQLServerPasswordSettingTextBox"                         Grid.Row="5" Grid.Column="1" Margin="14,0,0,0" Height="25" Width="230"  HorizontalAlignment="Left" FontSize="12" PasswordChanged="SQLServerPasswordSettingTextBox_PasswordChanged" Foreground="#FF1F1F1F"/>
+
+            <Label   x:Name="SQLServerPortSetting"          Content="SQL Server Port:"    Grid.Row="2" Grid.Column="1"  Margin="10 10 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <TextBox x:Name="SQLServerPortSettingTextBox"                                 Grid.Row="2" Grid.Column="1"  Height="25" Width="230" Margin="14,0,0,0"  HorizontalAlignment="Left" FontSize="12" TextChanged="SQLServerPortSettingTextBox_TextChanged" Foreground="#FF1F1F1F"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Grid.Column="1" Grid.RowSpan="1" Width="auto" Height="auto" Margin="5,5,5,5" Background="#FF666666" Orientation="Horizontal" FlowDirection="LeftToRight">
+            <Button x:Name="SaveButtonDB"  Grid.Row="0" Grid.Column="1" Width="40" Height="40"  Foreground="#DD0E0101" HorizontalAlignment="Right" Margin="5,0,0,0" Click="SaveButtonDB_Click" BorderBrush="{x:Null}">
+                <Button.Background>
+                    <ImageBrush ImageSource="/Source/save_32px.png" Stretch="None"/>
+                </Button.Background>
+            </Button>
+            <Label x:Name="TestCheckBoxlabel"      Content="Test DB connection:  " Grid.Column="0" Grid.Row="1" Margin="75 10 0 0" Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            <Button x:Name="TestDBButtonDB" Grid.Row="0" Grid.Column="1" Width="40" Height="40" Foreground="#DD0E0101" HorizontalAlignment="Right" Margin="5,0,5,0" Click="TestDBButtonDB_Click" BorderBrush="{x:Null}">
+                <Button.Background>
+                    <ImageBrush ImageSource="/Source/checked_checkbox_32px.png" Stretch="None"/>
                 </Button.Background>
             </Button>
         </StackPanel>
 
-        <Label x:Name="OPCServerSettingsDescription" Content="OPC Server Settings" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Foreground="#FF11020A" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="25"/>
-        <Label x:Name="OPCServerNameSettingLabel" Content="OPC Server Name" Grid.Row="1" Grid.Column="0" Foreground="Black" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="19"/>
-        <TextBox x:Name="OPCServerNameSettingTextBox" Grid.Column="1" Grid.Row="1" Height="30" Width="170" HorizontalAlignment="Left" TextChanged="OPCServerNameSettingTextBox_TextChanged" FontSize="15"/>
+        <!--"Настройки синхронизации" -->
+        <Label x:Name="ServerSyncDescription" Content="Synchronization Servers" Grid.Row="0" Grid.Column="2" Foreground="Gray" HorizontalAlignment="Center" VerticalAlignment="Center" Width="auto" FontSize="14" FontWeight="Bold"/>
 
-        <Label x:Name="OPCServerSubDescSettingLabel" Content="OPC Server SubDir" Grid.Row="2" Grid.Column="0" Foreground="Black" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="19"/>
-        <TextBox x:Name="OPCServerSubDescSettingTextBox" Grid.Column="1" Grid.Row="2" Height="30" Width="170" HorizontalAlignment="Left" FontSize="15" TextChanged="OPCServerSubDescSettingTextBox_TextChanged"/>
+        <StackPanel                                                                      Grid.Column="2" Grid.Row="1" Height="auto" Width="auto" Grid.RowSpan="1" Margin="5,5,5,5" Background="#FF666666"  >
+            <Grid Grid.Column="1" Grid.Row="3"  Margin="10 10 0 0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-        <Label x:Name="OPCServerStateLabelDesc" Content="OPC Server State" Grid.Row="3" Grid.Column="0" Foreground="Black" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="19"/>
-        <Rectangle x:Name ="ServerStateRectangle" Grid.Column="1" Grid.Row="3" Width="27" Height="27" Margin="5,0,0,0" Fill="#FFE61212" HorizontalAlignment="Left"   />
+                <Label   x:Name="ServerSyncRole"             Content="Server Role:"               Grid.Column="0" Grid.Row="0" Margin="0,0,0,0"          Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+                <!--<TextBox x:Name="ServerSyncRoleTextBox"                                       Grid.Column="1" Grid.Row="0" Margin="14,0,0,0"  Height="25" Width="230" Foreground="#FF1F1F1F" HorizontalAlignment="Left" FontSize="12" IsReadOnly="True" FontWeight="Bold" />-->
+                <Label   x:Name="ServerSyncRoleTextBox"      Content="waiting for the role..."    Grid.Column="1"         Foreground="Black" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" FontWeight="Bold"/>
 
-        <Label x:Name="EnableWritingCheckBoxlabel" Content="Enable writing to OPC" Grid.Row="4" Grid.Column="0" Foreground="Black" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="19"/>
-        <CheckBox x:Name ="WritingEnableCheckBox" Grid.Column="1" Grid.Row="4" IsChecked="{Binding isEnableWritingChecked, Mode=TwoWay }" HorizontalAlignment="Left" Background="#FF12205D">
-            <CheckBox.LayoutTransform>
-                <ScaleTransform ScaleX="2" ScaleY="2" />
-            </CheckBox.LayoutTransform>
-        </CheckBox>
+                <Label   x:Name="ServerSyncWritingStatus"    Content="Server Writing Status:"     Grid.Column="0" Grid.Row="1" Margin="0 10 0 0"         Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+                <Label   x:Name="ServerSyncWritingRectangle" Content="waiting for the status..."  Grid.Column="1" Grid.Row="1" Margin="5 10 0 0"        Foreground="Black" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12" FontWeight="Normal"/>
+                <!--<Rectangle x:Name ="ServerSyncWritingRectangle"                             Grid.Column="2" Grid.Row="3" Height="25"   Width="25"   Fill="#FFE61212"       HorizontalAlignment="Left"   />-->
+            </Grid>
 
+            <!--<Label   x:Name="ServerSyncPollingTimes"  Content="Sync polling Times"      Grid.Column="2" Grid.Row="2" Margin="10 10 0 0"          Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <TextBox x:Name="ServerSyncPollingTimesTextBox"                             Grid.Column="1" Grid.Row="2" Margin="14,0,0,0"  Height="25" Width="230" Foreground="#FF1F1F1F" HorizontalAlignment="Left" FontSize="12" />-->
 
+            <Label   x:Name="ServerSyncWritingTag"    Content="Server Sync Writing Tag:" Grid.Column="2" Grid.Row="4" Margin="10 40 0 0"          Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <TextBox x:Name="ServerSyncWritingTagTextBox"                                Grid.Column="2" Grid.Row="4" Margin="14,0,0,0"  Height="25" Width="230" Foreground="#FF1F1F1F" HorizontalAlignment="Left" FontSize="12" TextChanged="ServerSyncWritingTagTextBox_TextChanged" />
 
+            <Label   x:Name="AtmoPressureTag"         Content="Atmo pressure Tag:"       Grid.Column="2" Grid.Row="5" Margin="10 10 0 0"          Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <TextBox x:Name="AtmoPressureTagTextBox"                                     Grid.Column="2" Grid.Row="5" Margin="14,0,0,0"  Height="25" Width="230" Foreground="#FF1F1F1F" HorizontalAlignment="Left" FontSize="12" TextChanged="AtmoPressureTagTextBox_TextChanged"/>
+
+            <Label   x:Name="OtherTagsNamesLabel"     Content="Tags For Reading:"        Grid.Column="2" Grid.Row="6" Margin="10 10 0 0"          Foreground="#FFDDDDDD" HorizontalAlignment="Left" VerticalAlignment="Center" FontSize="12"/>
+            <TextBox x:Name="OtherTagsNamesTextBlock"                                    Grid.Column="2" Grid.Row="6" Margin="14,0,0,0"  Height="42" Width="230" Foreground="#FF1F1F1F" HorizontalAlignment="Left" FontSize="12" AcceptsReturn="True" />
+
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Grid.Column="2" Grid.RowSpan="1" Width="auto" Height="auto" Margin="5,5,5,5" Background="#FF666666" Orientation="Horizontal" FlowDirection="LeftToRight">
+            <Button x:Name="SaveButtonSynchr"  Grid.Row="2" Grid.Column="2" Width="40" Height="40"  Foreground="#DD0E0101" HorizontalAlignment="Right"    Margin="5,0,5,0" Click="SaveButtonSynchr_Click" BorderBrush="{x:Null}">
+                <Button.Background>
+                    <ImageBrush ImageSource="/Source/save_32px.png" Stretch="None"/>
+                </Button.Background>
+            </Button>
+        </StackPanel>
 
     </Grid>
 </UserControl>

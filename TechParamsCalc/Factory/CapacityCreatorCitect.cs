@@ -4,33 +4,29 @@ using System.Linq;
 using System.Windows;
 using TechParamsCalc.OPC;
 using TitaniumAS.Opc.Client.Da;
+using TitaniumAS.Opc.Client.Da.Browsing;
 using TechParamsCalc.Parameters;
 using TechParamsCalc.DataBaseConnection;
 using TechParamsCalc.DataBaseConnection.Capacity;
 
-
-
 namespace TechParamsCalc.Factory
 {
-    internal class CapacityCreator : ItemsCreator
+    internal class CapacityCreatorCitect : ItemsCreator
     {
-        private string[] itemDescCapacityForRead = new string[] { "SEL", "VAL_HMI", "VAL_CALC", "DELTA_C", "COMP_N", "PERC" };
+        private string[] itemDescCapacityForRead = new string[] { "SEL", "VAL_HMI", "VAL_CALC", "DELTA_C", "COMP_N", "PERC_0", "PERC_1", "PERC_2", "PERC_3", "PERC_4" };
         private string[] itemDescCapacityForWrite = new string[] { "VAL_CALC" };
         public List<Capacity> CapacityList { get; private set; }
         public event EventHandler capacityListGeneratedEvent;                      //Событие - "список переменных сформирован"
-        //private short atmoPressure;
         private SingleTagCreator singleTagCreator;
-        OpcDaItemValue[] capacityValues;
+        private OpcDaItemValue[] capacityValues;
+        private int countOfErrorsInReading;
 
-        public CapacityCreator(IOpcClient opcClient, ItemsCreator itemCreator /*short atmoPressure*/) : base(opcClient)
+        public CapacityCreatorCitect(IOpcClient opcClient, ItemsCreator itemCreator) : base(opcClient)
         {
-            //@"^.*_CAP.*$";
+            subStringTagName = @"^[S]\d{2,3}[_]\d{2,3}[_]\w*[_]CAP_SEL$";
 
-            subStringTagName = @"^[S]\d{2,3}[_]\w*[_]CAP$";
             CapacityList = new List<Capacity>();
-            //01.04.2020
-            //this.atmoPressure = atmoPressure;
-            //this.atmoPressure = (itemCreator as SingleTagCreator).AtmoPressureFromOPC;
+
             singleTagCreator = itemCreator as SingleTagCreator;
         }
 
@@ -39,14 +35,36 @@ namespace TechParamsCalc.Factory
         protected internal override void CreateItemList()
         {
             //Считываем из OPC-Reader строки с названиями переменных
-            nodeElementCollection = opcClient.ReadDataToNodeList(subStringTagName).ToList();           
+            nodeElementCollection = opcClient.ReadDataToNodeList(subStringTagName).ToList();
 
+            // удаляем _R
+            foreach (var item in nodeElementCollection)
+            {
+                item.Name = item.Name.Replace("_SEL", "");
+                item.ItemId = item.Name.Replace("_SEL", "");
+            }
         }
 
+        // перегруженый метод создания списка уровней
+        protected internal override void CreateItemList(HashSet<string> capacityDB, List<OpcDaBrowseElement> opcDaBrowseElements)
+        {
+            //Считываем из OPC-Reader строки с названиями переменных
+            foreach (var capacity in capacityDB)
+            {
+                var temp = opcDaBrowseElements.FirstOrDefault(t => t.ItemId == capacity + "_SEL");
+                if (temp != null)
+                {
+                    temp.Name = temp.Name.Replace("_SEL", "");
+                    temp.ItemId = temp.Name.Replace("_SEL", "");
+                    nodeElementCollection.Add(temp);
+                }
+            }
+            countItems = nodeElementCollection.Count;
+        }
 
         //Создаем группу для чтения из OPC-сервера
         protected internal override void CreateOPCReadGroup()
-        {            
+        {
             //Отправляем в InitDataGroup список всех переменных Caps, т.к. еще не известно, какие из них несуществующие. OpcDaItemResult[] возвращает массив результатов по каждому тегу
             OpcDaItemResult[] readingResults;
             List<string> listOfValidItems;
@@ -61,13 +79,13 @@ namespace TechParamsCalc.Factory
 
         //Создаем группу для записи в OPC-сервер  
         protected internal override void CreateOPCWriteGroup()
-        {            
+        {
             //Принимаем, что список Capacities сформировался на этапе формирования группы чтения и не содержит неправильных тегов  
             this.InitDataGroup(itemDescCapacityForWrite, "Capacities_Write_Group", CapacityList.Where(c => c.IsWriteble == true), out dataGroupWrite);
 
             //Инициализация массива объектов для будущей записи в OPC. Отбираются теги, значение "IsWriteble" == false
             this.valuesForWriting = new object[(from e in CapacityList.Where(c => c.IsWriteble == true) select e).Count() * itemDescCapacityForWrite.Length]; //Массив значений для записи в OPC_сервер
-            
+
         }
 
         //Обновление Capacity тегов из OPC
@@ -75,21 +93,32 @@ namespace TechParamsCalc.Factory
         {
             capacityValues = dataGroupRead.Read(dataGroupRead.Items, OpcDaDataSource.Device);
 
+            countOfErrorsInReading = 0;
             int valueCollectionIterator = 0;
             var capacity = default(Capacity);
+
             foreach (var item in CapacityList)
             {
                 try
                 {
                     //Initialization of fields of capacity instance
                     capacity = CapacityList.FirstOrDefault(c => c.TagName == item.TagName);
-                    if (capacity != null)
+
+                    if (capacity != null && capacityValues[0 + valueCollectionIterator].Error.Succeeded)
                     {
-                        capacity.Sel = (bool)capacityValues[0 + valueCollectionIterator].Value;
-                        capacity.ValHmi = (short)capacityValues[1 + valueCollectionIterator].Value;
+                        if (capacityValues[0 + valueCollectionIterator].Value != null)
+                            capacity.Sel = (bool)capacityValues[0 + valueCollectionIterator].Value;
+
+                        if (capacityValues[1 + valueCollectionIterator].Value != null)
+                            capacity.ValHmi = short.Parse(capacityValues[1 + valueCollectionIterator].Value.ToString());
+
                         //_capacity.val_calc = (short)capacityValues[2 + _valueCollectionIterator].Value;
-                        capacity.DeltaC = (short)capacityValues[3 + valueCollectionIterator].Value;
-                        capacity.CompN = (short)capacityValues[4 + valueCollectionIterator].Value;
+
+                        if (capacityValues[3 + valueCollectionIterator].Value != null)
+                            capacity.DeltaC = (short)(float.Parse(capacityValues[3 + valueCollectionIterator].Value.ToString()) * 10);
+
+                        if (capacityValues[4 + valueCollectionIterator].Value != null)
+                            capacity.CompN = short.Parse(capacityValues[4 + valueCollectionIterator].Value.ToString());
 
                         //Инициализация массива description при первом апдейте списка capacity
                         if (capacity.PercDescription == null)
@@ -100,14 +129,19 @@ namespace TechParamsCalc.Factory
                             capacity.PercArray = new double[capacity.CompN];
 
                         //Заполнение списка содержданий
-                        for (int i = 0; i < capacity.CompN; i++)
-                            capacity.PercArray[i] = ((short[])(capacityValues[5 + valueCollectionIterator].Value))[i] * 0.01;
+                        if (capacityValues[5 + valueCollectionIterator].Value != null)
+                        {
+                            for (int i = 0; i < capacity.CompN; i++)
+                                capacity.PercArray[i] = double.Parse(capacityValues[5 + i + valueCollectionIterator].Value.ToString());
+                        }
 
                         //Инициализация атмосферного давления, полученного из OPC
-
-                        //01.04.2020 Передаем объект SingleTag чтобы прочитать из него атмосферное давление 
-                        //capacity.AtmoPressure = atmoPressure;
                         capacity.AtmoPressure = singleTagCreator.AtmoPressureFromOPC;
+                    }
+                    else
+                    {
+                        capacity.IsInValid = true;
+                        countOfErrorsInReading++;
                     }
                 }
                 catch (Exception)
@@ -118,8 +152,9 @@ namespace TechParamsCalc.Factory
                 {
                     valueCollectionIterator += itemDescCapacityForRead.Length;
                 }
-                
             }
+            //if (countOfErrorsInReading > 0)
+            //    throw new Exception($"Количество ошибок чтения Capacity - {countOfErrorsInReading}");
         }
 
 
@@ -175,7 +210,7 @@ namespace TechParamsCalc.Factory
                 }
             }
         }
-        
+
 
         //Запись тегов в OPC
         protected internal override void WriteItemToOPC()

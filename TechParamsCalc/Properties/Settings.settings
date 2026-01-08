@@ -17,26 +17,26 @@
     <Setting Name="SQLServerPort" Type="System.String" Scope="User">
       <Value Profile="(Default)">5432</Value>
     </Setting>
+    <Setting Name="ServerSyncWryteTag" Type="System.String" Scope="User">
+      <Value Profile="(Default)">S10_ExternalExchange</Value>
+    </Setting>
     <Setting Name="OPCServerName" Type="System.String" Scope="User">
-      <Value Profile="(Default)">Schneider-Aut.OFS.2</Value>
+      <Value Profile="(Default)">SchneiderElectric.SCADA.OpcDaServer.1\</Value>
     </Setting>
     <Setting Name="OPCServerSubString" Type="System.String" Scope="User">
-      <Value Profile="(Default)">KNH_PO!</Value>
-    </Setting>
-    <Setting Name="ServerSyncWryteTag" Type="System.String" Scope="User">
-      <Value Profile="(Default)">EDS01_EXTERNAL_EXCHANGE</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="AtmoPressureTag" Type="System.String" Scope="User">
-      <Value Profile="(Default)">S11_METEO_10</Value>
+      <Value Profile="(Default)">S08_01_W01_LT01</Value>
     </Setting>
     <Setting Name="ServerSyncWriteTag" Type="System.String" Scope="User">
-      <Value Profile="(Default)">EDS01_EXTERNAL_EXCHANGE</Value>
+      <Value Profile="(Default)">S10_ExternalExchange</Value>
     </Setting>
     <Setting Name="SQLServerAddress" Type="System.String" Scope="User">
-      <Value Profile="(Default)">192.168.3.5</Value>
+      <Value Profile="(Default)">10.12.70.16</Value>
     </Setting>
     <Setting Name="OtherTagsFromOPC" Type="System.String" Scope="User">
-      <Value Profile="(Default)">S11_P05_FC08,S11_A01_FC02</Value>
+      <Value Profile="(Default)">S08_01_W03_LT01,S08_01_W04_LT01</Value>
     </Setting>
   </Settings>
 </SettingsFile>

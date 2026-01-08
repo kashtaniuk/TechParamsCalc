@@ -7,37 +7,28 @@ using TechParamsCalc.DataBaseConnection.Density;
 using TechParamsCalc.OPC;
 using TechParamsCalc.Parameters;
 using TitaniumAS.Opc.Client.Da;
+using TitaniumAS.Opc.Client.Da.Browsing;
 
 namespace TechParamsCalc.Factory
 {
-    internal class DensityCreator : ItemsCreator
+    internal class DensityCreatorCitect : ItemsCreator
     {
-        private string[] itemDescDensityForRead = new string[] { "SEL", "VAL_HMI", "VAL_CALC", "DELTA_D", "COMP_N", "PERC" };
+        private string[] itemDescDensityForRead = new string[] { "SEL", "VAL_HMI", "VAL_CALC", "DELTA_D", "COMP_N", "PERC_0", "PERC_1", "PERC_2", "PERC_3", "PERC_4" };
         private string[] itemDescDensityForWrite = new string[] { "VAL_CALC" };
         public List<Density> DensityList { get; private set; }
         public event EventHandler densityListGeneratedEvent;                      //Событие - "список переменных сформирован"
         //private short atmoPressure;
         private SingleTagCreator singleTagCreator;
         private OpcDaItemValue[] densityValues;
+        private int countOfErrorsInReading;
 
-        public DensityCreator(IOpcClient opcClient, ItemsCreator itemCreator /*short atmoPressure*/) : base(opcClient)
+        public DensityCreatorCitect(IOpcClient opcClient, ItemsCreator itemCreator /*short atmoPressure*/) : base(opcClient)
         {
-            //@"^.*_DENS.*$"
-            switch (opcClient)
-            {
-                case OpcClient _:
-                    subStringTagName = @"^[S]\d{2,3}[_]\w*[_]DENS$";
-                    break;
-                case OpcClientCitect _:
-                    subStringTagName = @"^[S]\d{2,3}[_]\d{2,3}[_]\w*[_]DENS_SEL$";
-                    break;
-                default:
-                    break;
-            }
+
+            subStringTagName = @"^[S]\d{2,3}[_]\d{2,3}[_]\w*[_]DENS_SEL$";
+
             DensityList = new List<Density>();
-            //01.04.2020
-            //this.atmoPressure = atmoPressure;
-            //this.atmoPressure = (itemCreator as SingleTagCreator).AtmoPressureFromOPC;
+
             singleTagCreator = itemCreator as SingleTagCreator;
         }
 
@@ -46,25 +37,40 @@ namespace TechParamsCalc.Factory
         {
             //Считываем из OPC-Reader строки с названиями переменных
             nodeElementCollection = opcClient.ReadDataToNodeList(subStringTagName).ToList();
-            
-            if (opcClient is OpcClientCitect)
+
+            // удаляем _R
+            foreach (var item in nodeElementCollection)
             {
-                // удаляем _R
-                foreach (var item in nodeElementCollection)
-                {
-                    item.Name = item.Name.Replace("_SEL", "");
-                    item.ItemId = item.Name.Replace("_SEL", "");
-                }
+                item.Name = item.Name.Replace("_SEL", "");
+                item.ItemId = item.Name.Replace("_SEL", "");
             }
 
+
+        }
+
+        // перегруженый метод создания списка density
+        protected internal override void CreateItemList(HashSet<string> densityDB, List<OpcDaBrowseElement> opcDaBrowseElements)
+        {
+            //Считываем из OPC-Reader строки с названиями переменных
+            foreach (var density in densityDB)
+            {
+                var temp = opcDaBrowseElements.FirstOrDefault(t => t.ItemId == density + "_SEL");
+                if (temp != null)
+                {
+                    temp.Name = temp.Name.Replace("_SEL", "");
+                    temp.ItemId = temp.Name.Replace("_SEL", "");
+                    nodeElementCollection.Add(temp);
+                }
+            }
+            countItems = nodeElementCollection.Count;
         }
 
         //Создаем группу для чтения из OPC-сервера
         protected internal override void CreateOPCReadGroup()
-        {           
-            
+        {
+
             //Отправляем в InitDataGroup список всех переменных Dens, т.к. еще не известно, какие из них несуществующие. OpcDaItemResult[] возвращает массив результатов по каждому тегу
-            OpcDaItemResult[] readingResults;            
+            OpcDaItemResult[] readingResults;
             List<string> listOfValidItems;
 
             this.InitDataGroup(itemDescDensityForRead, "Densities_Read_Group", nodeElementCollection, out dataGroupRead, out readingResults, out listOfValidItems);
@@ -77,7 +83,7 @@ namespace TechParamsCalc.Factory
 
         //Создаем группу для записи в OPC-сервер  
         protected internal override void CreateOPCWriteGroup()
-        {   
+        {
             //Принимаем, что список Densities сормировался на этапе формирования группы чтения и не содержит неправильных тегов
             this.InitDataGroup(itemDescDensityForWrite, "Densities_Write_Group", DensityList.Where(c => c.IsWriteble == true), out dataGroupWrite);
 
@@ -92,21 +98,32 @@ namespace TechParamsCalc.Factory
         {
             densityValues = dataGroupRead.Read(dataGroupRead.Items, OpcDaDataSource.Device);
 
+            countOfErrorsInReading = 0;
             int valueCollectionIterator = 0;
             var density = default(Density);
+
             foreach (var item in DensityList)
             {
                 try
                 {
                     //Initialization of fields of density instance
                     density = DensityList.FirstOrDefault(c => c.TagName == item.TagName);
-                    if (density != null)
+
+                    if (density != null && densityValues[0 + valueCollectionIterator].Error.Succeeded) // if (density != null)
                     {
-                        density.Sel = (bool)densityValues[0 + valueCollectionIterator].Value;
-                        density.ValHmi =short.Parse(densityValues[1 + valueCollectionIterator].Value.ToString());
+                        if (densityValues[0 + valueCollectionIterator].Value != null)
+                            density.Sel = (bool)densityValues[0 + valueCollectionIterator].Value;
+
+                        if (densityValues[1 + valueCollectionIterator].Value != null)
+                            density.ValHmi = (short)(float.Parse(densityValues[1 + valueCollectionIterator].Value.ToString()) * 10);
+
                         //_density.val_calc = (short)densityValues[2 + _valueCollectionIterator].Value;
-                        density.DeltaD = short.Parse(densityValues[3 + valueCollectionIterator].Value.ToString());
-                        density.CompN = short.Parse(densityValues[4 + valueCollectionIterator].Value.ToString());
+
+                        if (densityValues[3 + valueCollectionIterator].Value != null)
+                            density.DeltaD = (short)(float.Parse(densityValues[3 + valueCollectionIterator].Value.ToString())*100);
+
+                        if (densityValues[4 + valueCollectionIterator].Value != null)
+                            density.CompN = short.Parse(densityValues[4 + valueCollectionIterator].Value.ToString());
 
                         //Инициализация массива description при первом апдейте списка density
                         if (density.PercDescription == null)
@@ -117,14 +134,20 @@ namespace TechParamsCalc.Factory
                             density.PercArray = new double[density.CompN];
 
                         //Заполнение списка содержданий
-                        for (int i = 0; i < density.CompN; i++)
-                            density.PercArray[i] = ((short[])(densityValues[5 + valueCollectionIterator].Value))[i] * 0.01;
+                        if (densityValues[5 + valueCollectionIterator].Value != null)
+                        {
+                            for (int i = 0; i < density.CompN; i++)
+                                density.PercArray[i] = double.Parse(densityValues[5 + i + valueCollectionIterator].Value.ToString());
+                        }
 
                         //01.04.2020 Передаем объект SingleTag чтобы прочитать из него атмосферное давление 
                         //density.AtmoPressure = atmoPressure;
                         density.AtmoPressure = singleTagCreator.AtmoPressureFromOPC;
-
-                        valueCollectionIterator += itemDescDensityForRead.Length;
+                    }
+                    else
+                    {
+                        density.IsInValid = true;
+                        countOfErrorsInReading++;
                     }
                 }
                 catch (Exception e)
@@ -133,10 +156,11 @@ namespace TechParamsCalc.Factory
                 }
                 finally
                 {
-                    //valueCollectionIterator += itemDescDensityForRead.Length;
+                    valueCollectionIterator += itemDescDensityForRead.Length;
                 }
-
             }
+            //if (countOfErrorsInReading > 0)
+            //    throw new Exception($"Количество ошибок чтения Density - {countOfErrorsInReading}");
         }
 
         //Обновление Capacity тегов из Базы Данных
@@ -178,6 +202,7 @@ namespace TechParamsCalc.Factory
                     if (density != null)
                     {
                         Array.Copy(item.percDescription, ((Density)density).PercDescription, ((Density)density).CompN);
+                        //Array.Copy(item.percDescription, ((Density)density).PercDescription, item.percDescription.Length);
                         density.Description = item.description;
                         ((Density)density).Temperature = item.temperature as Temperature;
                         ((Density)density).Pressure = item.pressure as Pressure == null ? new Pressure("PressureSample") : item.pressure as Pressure;
@@ -186,7 +211,7 @@ namespace TechParamsCalc.Factory
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(e.Message, "Alert!", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"{density.TagName}\n{e.Message}", "Alert!", MessageBoxButton.OK, MessageBoxImage.Error);
                     density.IsInValid = true;
                 }
             }
@@ -213,7 +238,7 @@ namespace TechParamsCalc.Factory
             {
                 try
                 {
-                    context.densityDescs.FirstOrDefault(c => c.tagname == item.TagName).value = (short)item.ValCalc;
+                    context.densityDescs.FirstOrDefault(c => c.tagname == item.TagName).value = item.ValCalc;
                 }
                 catch (Exception)
                 {

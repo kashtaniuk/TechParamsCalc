@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TechParamsCalc.OPC;
 using TitaniumAS.Opc.Client.Da;
+using TitaniumAS.Opc.Client.Da.Browsing;
 using TechParamsCalc.Parameters;
 
 namespace TechParamsCalc.Factory
@@ -18,10 +19,20 @@ namespace TechParamsCalc.Factory
         private OpcDaItemValue[] pressureValues;
         public List<Pressure> PressureList { get; private set; }
 
-        public PressureCreator(OpcClient opcClient) : base(opcClient)
+        public PressureCreator(IOpcClient opcClient) : base(opcClient)
         {
             //@"^.*_P[CT].*$"
-            subStringTagName = @"^[S]\d{2,3}[_]\w*_P[CT]\d{2,3}$";
+            switch (opcClient)
+            {
+                case OpcClient _:
+                    subStringTagName = @"^[S]\d{2,3}[_]\w*_P[CT]\d{2,3}$";
+                    break;
+                case OpcClientCitect _:
+                    subStringTagName = @"^[S]\d{2,3}[_]\d{2,3}[_]\w*_P[CT]\d{2,3}[_]R$";
+                    break;
+                default:
+                    break;
+            }
             PressureList = new List<Pressure>();
         }
 
@@ -29,7 +40,34 @@ namespace TechParamsCalc.Factory
         {
             //Считываем из OPC-Reader строки с названиями переменных
             nodeElementCollection = opcClient.ReadDataToNodeList(subStringTagName).ToList();
+            
+            if (opcClient is OpcClientCitect)
+            {
+                // удаляем _R
+                foreach (var item in nodeElementCollection)
+                {
+                    item.Name = item.Name.Replace("_R", "");
+                    item.ItemId = item.Name.Replace("_R", "");
+                }
+            }
 
+        }
+
+        // перегруженый метод создания списка давлений
+        protected internal override void CreateItemList(HashSet<string> pressuesDB, List<OpcDaBrowseElement> opcDaBrowseElements)
+        {
+            //Считываем из OPC-Reader строки с названиями переменных
+            foreach (var pressue in pressuesDB)
+            {
+                var temp = opcDaBrowseElements.FirstOrDefault(t => t.ItemId == pressue + "_R");
+                if (temp != null)
+                {
+                    temp.Name = temp.Name.Replace("_R", "");
+                    temp.ItemId = temp.Name.Replace("_R", "");
+                    nodeElementCollection.Add(temp);
+                }
+            }
+            countItems = nodeElementCollection.Count;
         }
 
         //Создаем группу для чтения из OPC-сервера
@@ -62,7 +100,10 @@ namespace TechParamsCalc.Factory
                         _pressure.Val_R = (float)pressureValues[0 + _valueCollectionIterator].Value;
                     }
                     else
+                    {
+                        _pressure.IsInValid = true;
                         countOfErrorsInReading++;
+                    }
                 }
                 catch (Exception)
                 {
@@ -74,8 +115,8 @@ namespace TechParamsCalc.Factory
                 }
                 
             }
-            if (countOfErrorsInReading > 0)
-                throw new Exception($"Количество ошибок чтения давлений - {countOfErrorsInReading}");
+            //if (countOfErrorsInReading > 0)
+            //    throw new Exception($"Количество ошибок чтения давлений - {countOfErrorsInReading}");
         }
 
         

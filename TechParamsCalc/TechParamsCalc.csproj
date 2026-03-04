@@ -104,6 +104,8 @@
     <Compile Include="Controllers\AdditionalCalculator.cs" />
     <Compile Include="Controllers\ControllerParameters.cs" />
     <Compile Include="Controllers\CustomEventArgs.cs" />
+    <Compile Include="CtApi\CtApi.cs" />
+    <Compile Include="CtApi\CtOpen.cs" />
     <Compile Include="DataBaseConnection\Level\Tank.cs" />
     <Compile Include="DataBaseConnection\Level\TankContent.cs" />
     <Compile Include="DataBaseConnection\ServerConnections\HostRole.cs" />
@@ -117,6 +119,7 @@
     <Compile Include="Factory\LevelTankCreator.cs" />
     <Compile Include="Factory\LevelTankCreatorCitect.cs" />
     <Compile Include="Factory\SingleTagCreator.cs" />
+    <Compile Include="Logger\Logger.cs" />
     <Compile Include="OPC\IOpcClient.cs" />
     <Compile Include="OPC\OpcClientCitect.cs" />
     <Compile Include="Parameters\Level.cs" />
